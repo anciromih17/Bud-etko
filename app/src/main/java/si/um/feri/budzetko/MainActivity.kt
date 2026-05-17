@@ -14,12 +14,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import si.um.feri.budzetko.data.database.AppDatabase
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
+import si.um.feri.budzetko.data.repository.ExpenseRepository
 import si.um.feri.budzetko.data.repository.UserRepository
-import si.um.feri.budzetko.ui.screens.categories.CategoryScreen
+import si.um.feri.budzetko.ui.screens.AddExpenseScreen
 import si.um.feri.budzetko.ui.screens.settings.SettingsScreen
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
+import si.um.feri.budzetko.viewmodel.ExpenseViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,8 +39,11 @@ class MainActivity : ComponentActivity() {
 fun BudzetkoApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val database = AppDatabase.getDatabase(context)
+
     val categoryRepository = remember { CategoryRepository(database.categoryDao()) }
     val userRepository = remember { UserRepository(database.userDao()) }
+    val expenseRepository = remember { ExpenseRepository(database.expenseDao()) }
+
     var currentScreen by remember { mutableStateOf(BudzetkoScreen.Categories) }
 
     val categoryViewModel: CategoryViewModel = viewModel(
@@ -48,6 +53,7 @@ fun BudzetkoApp() {
             userRepository = userRepository
         )
     )
+
     val budgetViewModel: BudgetViewModel = viewModel(
         factory = BudgetViewModel.Factory(
             budgetRepository = BudgetRepository(database.budgetDao()),
@@ -56,10 +62,16 @@ fun BudzetkoApp() {
         )
     )
 
+    val expenseViewModel: ExpenseViewModel = viewModel(
+        factory = ExpenseViewModel.Factory(
+            repository = expenseRepository
+        )
+    )
+
     when (currentScreen) {
-        BudzetkoScreen.Categories -> CategoryScreen(
-            viewModel = categoryViewModel,
-            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+        BudzetkoScreen.Categories -> AddExpenseScreen(
+            expenseViewModel = expenseViewModel,
+            categoryViewModel = categoryViewModel
         )
 
         BudzetkoScreen.Settings -> SettingsScreen(
