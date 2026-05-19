@@ -16,10 +16,12 @@ import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.UserRepository
 import si.um.feri.budzetko.ui.screens.categories.CategoryScreen
+import si.um.feri.budzetko.ui.screens.profile.ProfileScreen
 import si.um.feri.budzetko.ui.screens.settings.SettingsScreen
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
+import si.um.feri.budzetko.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,24 +57,37 @@ fun BudzetkoApp() {
             userRepository = userRepository
         )
     )
+    val userViewModel: UserViewModel = viewModel(
+        factory = UserViewModel.Factory(userRepository)
+    )
 
     when (currentScreen) {
         BudzetkoScreen.Categories -> CategoryScreen(
             viewModel = categoryViewModel,
-            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            onProfileClick = { currentScreen = BudzetkoScreen.Profile }
         )
 
         BudzetkoScreen.Settings -> SettingsScreen(
             budgetViewModel = budgetViewModel,
             onHomeClick = { currentScreen = BudzetkoScreen.Categories },
+            onProfileClick = { currentScreen = BudzetkoScreen.Profile },
             onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories }
+        )
+
+        BudzetkoScreen.Profile -> ProfileScreen(
+            viewModel = userViewModel,
+            onBackClick = { currentScreen = BudzetkoScreen.Categories },
+            onHomeClick = { currentScreen = BudzetkoScreen.Categories },
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
         )
     }
 }
 
 private enum class BudzetkoScreen {
     Categories,
-    Settings
+    Settings,
+    Profile
 }
 
 @Preview(showBackground = true)
