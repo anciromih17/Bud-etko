@@ -24,13 +24,14 @@ class ExpenseViewModel(
 
     fun addExpense(
         amount: Double,
+        date: Long,
         description: String,
         categoryId: Long
     ) {
         viewModelScope.launch {
             repository.insertExpense(
                 amount = amount,
-                date = System.currentTimeMillis(),
+                date = date,
                 description = description,
                 userId = UserRepository.DEMO_USER_ID,
                 categoryId = categoryId
@@ -41,13 +42,17 @@ class ExpenseViewModel(
     fun updateExpense(
         expense: ExpenseEntity,
         amount: Double,
-        description: String
+        date: Long,
+        description: String,
+        categoryId: Long
     ) {
         viewModelScope.launch {
             repository.updateExpense(
                 expense.copy(
                     amount = amount,
+                    date = date,
                     description = description,
+                    categoryId = categoryId,
                     updatedAt = System.currentTimeMillis()
                 )
             )

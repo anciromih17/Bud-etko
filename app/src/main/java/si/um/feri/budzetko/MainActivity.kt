@@ -16,7 +16,10 @@ import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.ExpenseRepository
 import si.um.feri.budzetko.data.repository.UserRepository
+import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.screens.AddExpenseScreen
+import si.um.feri.budzetko.ui.screens.TransactionsScreen
+import si.um.feri.budzetko.ui.screens.categories.CategoryScreen
 import si.um.feri.budzetko.ui.screens.settings.SettingsScreen
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
@@ -45,6 +48,7 @@ fun BudzetkoApp() {
     val expenseRepository = remember { ExpenseRepository(database.expenseDao()) }
 
     var currentScreen by remember { mutableStateOf(BudzetkoScreen.Categories) }
+    var expenseBeingEdited by remember { mutableStateOf<ExpenseEntity?>(null) }
 
     val categoryViewModel: CategoryViewModel = viewModel(
         factory = CategoryViewModel.Factory(
@@ -69,22 +73,66 @@ fun BudzetkoApp() {
     )
 
     when (currentScreen) {
-        BudzetkoScreen.Categories -> AddExpenseScreen(
-            expenseViewModel = expenseViewModel,
-            categoryViewModel = categoryViewModel
+        BudzetkoScreen.Categories -> CategoryScreen(
+            viewModel = categoryViewModel,
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                currentScreen = BudzetkoScreen.AddExpense
+            },
+            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions }
         )
 
         BudzetkoScreen.Settings -> SettingsScreen(
             budgetViewModel = budgetViewModel,
             onHomeClick = { currentScreen = BudzetkoScreen.Categories },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                currentScreen = BudzetkoScreen.AddExpense
+            },
+            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions },
             onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories }
+        )
+
+        BudzetkoScreen.AddExpense -> AddExpenseScreen(
+            expenseViewModel = expenseViewModel,
+            categoryViewModel = categoryViewModel,
+            expenseToEdit = expenseBeingEdited,
+            onClose = { currentScreen = BudzetkoScreen.Categories },
+            onSaved = {
+                expenseBeingEdited = null
+                currentScreen = BudzetkoScreen.Transactions
+            },
+            onAddCategoryClick = {
+                categoryViewModel.openCreateDialog()
+                currentScreen = BudzetkoScreen.Categories
+            },
+            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions },
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+        )
+
+        BudzetkoScreen.Transactions -> TransactionsScreen(
+            expenseViewModel = expenseViewModel,
+            categoryViewModel = categoryViewModel,
+            onHomeClick = { currentScreen = BudzetkoScreen.Categories },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                currentScreen = BudzetkoScreen.AddExpense
+            },
+            onEditExpenseClick = {
+                expenseBeingEdited = it
+                currentScreen = BudzetkoScreen.AddExpense
+            },
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
         )
     }
 }
 
 private enum class BudzetkoScreen {
     Categories,
-    Settings
+    Settings,
+    AddExpense,
+    Transactions
 }
 
 @Preview(showBackground = true)

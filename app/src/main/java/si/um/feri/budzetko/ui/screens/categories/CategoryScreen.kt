@@ -92,6 +92,8 @@ private val CategoryAccentColors = listOf(
 fun CategoryScreen(
     viewModel: CategoryViewModel,
     onSettingsClick: () -> Unit,
+    onAddExpenseClick: () -> Unit = {},
+    onTransactionsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -115,6 +117,8 @@ fun CategoryScreen(
         onSaveClick = viewModel::saveCategory,
         onDismissDialog = viewModel::closeDialog,
         onSettingsClick = onSettingsClick,
+        onAddExpenseClick = onAddExpenseClick,
+        onTransactionsClick = onTransactionsClick,
         modifier = modifier
     )
 }
@@ -139,6 +143,8 @@ private fun CategoryContent(
     onSaveClick: () -> Unit,
     onDismissDialog: () -> Unit,
     onSettingsClick: () -> Unit,
+    onAddExpenseClick: () -> Unit,
+    onTransactionsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -146,9 +152,8 @@ private fun CategoryContent(
         containerColor = ScreenBackground,
         bottomBar = {
             BudzetkoBottomBar(
-                onAddExpenseClick = {
-                    // AddExpenseScreen belongs to the expense flow and will be connected later.
-                },
+                onBudgetClick = onTransactionsClick,
+                onAddExpenseClick = onAddExpenseClick,
                 onSettingsClick = onSettingsClick
             )
         }
@@ -915,7 +920,9 @@ private fun CategoryContentPreview() {
             onSuggestLimit = {},
             onSaveClick = {},
             onDismissDialog = {},
-            onSettingsClick = {}
+            onSettingsClick = {},
+            onAddExpenseClick = {},
+            onTransactionsClick = {}
         )
     }
 }

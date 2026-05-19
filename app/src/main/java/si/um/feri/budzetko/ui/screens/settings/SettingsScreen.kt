@@ -77,6 +77,8 @@ private val MutedInk = Color(0xFF71706A)
 fun SettingsScreen(
     budgetViewModel: BudgetViewModel,
     onHomeClick: () -> Unit,
+    onAddExpenseClick: () -> Unit = {},
+    onTransactionsClick: () -> Unit = {},
     onCategorySettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -85,6 +87,8 @@ fun SettingsScreen(
     SettingsContent(
         budgetUiState = budgetUiState,
         onHomeClick = onHomeClick,
+        onAddExpenseClick = onAddExpenseClick,
+        onTransactionsClick = onTransactionsClick,
         onCategorySettingsClick = onCategorySettingsClick,
         onOpenBudget = budgetViewModel::openBudgetDialog,
         onCloseBudget = budgetViewModel::closeBudgetDialog,
@@ -104,6 +108,8 @@ fun SettingsScreen(
 private fun SettingsContent(
     budgetUiState: BudgetUiState,
     onHomeClick: () -> Unit,
+    onAddExpenseClick: () -> Unit,
+    onTransactionsClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
     onOpenBudget: () -> Unit,
     onCloseBudget: () -> Unit,
@@ -123,6 +129,8 @@ private fun SettingsContent(
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
+                onBudgetClick = onTransactionsClick,
+                onAddExpenseClick = onAddExpenseClick,
                 onSettingsClick = {}
             )
         }
@@ -594,6 +602,8 @@ private fun SettingsContentPreview() {
         SettingsContent(
             budgetUiState = BudgetUiState(),
             onHomeClick = {},
+            onAddExpenseClick = {},
+            onTransactionsClick = {},
             onCategorySettingsClick = {},
             onOpenBudget = {},
             onCloseBudget = {},
