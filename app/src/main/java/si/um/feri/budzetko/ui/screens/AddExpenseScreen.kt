@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,7 +35,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,6 +51,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -58,15 +60,20 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
-import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
+import si.um.feri.budzetko.ui.theme.BudzetkoBackground
+import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.ui.theme.BudzetkoLime
+import si.um.feri.budzetko.ui.theme.BudzetkoPurple
+import si.um.feri.budzetko.ui.theme.BudzetkoSurface
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
 
-private val ScreenBackground = Color(0xFFF7F4EE)
-private val CardSurface = Color(0xFFFFFFFF)
-private val PrimaryAccent = Color(0xFF156C6A)
-private val SoftAccent = Color(0xFFE9F3F2)
-private val Ink = Color(0xFF191B1F)
+private val ScreenBackground = BudzetkoBackground
+private val CardSurface = BudzetkoSurface
+private val PrimaryAccent = BudzetkoPurple
+private val SoftAccent = Color(0xFFF4F0FF)
+private val LimeAccent = BudzetkoLime
+private val Ink = BudzetkoInk
 private val MutedInk = Color(0xFF71706A)
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -78,9 +85,7 @@ fun AddExpenseScreen(
     expenseToEdit: ExpenseEntity?,
     onClose: () -> Unit,
     onSaved: () -> Unit,
-    onAddCategoryClick: () -> Unit,
-    onTransactionsClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onAddCategoryClick: () -> Unit
 ) {
     val categoryState by categoryViewModel.uiState.collectAsState()
     val categories = categoryState.categories
@@ -113,104 +118,110 @@ fun AddExpenseScreen(
         }
     }
 
-    Scaffold(
-        containerColor = ScreenBackground,
-        bottomBar = {
-            BudzetkoBottomBar(
-                onHomeClick = onClose,
-                onBudgetClick = onTransactionsClick,
-                onAddExpenseClick = {},
-                onSettingsClick = onSettingsClick
-            )
-        }
-    ) { innerPadding ->
-        LazyColumn(
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ScreenBackground)
-                .padding(innerPadding),
-            contentPadding = PaddingValues(start = 22.dp, top = 30.dp, end = 22.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .background(Color.Black.copy(alpha = 0.22f))
+                .padding(horizontal = 20.dp, vertical = 28.dp),
+            contentAlignment = Alignment.BottomCenter
         ) {
-            item { AddExpenseHeader(onClose = onClose) }
-            item {
-                AddExpenseFormCard(
-                    isEditing = expenseToEdit != null,
-                    amount = amount,
-                    description = description,
-                    note = note,
-                    dateInput = dateInput,
-                    categories = categories,
-                    selectedCategoryId = selectedCategoryId,
-                    errorMessage = errorMessage,
-                    onAmountChange = {
-                        amount = it.filter { char -> char.isDigit() || char == '.' || char == ',' }
-                        errorMessage = null
-                    },
-                    onDescriptionChange = {
-                        description = it
-                        errorMessage = null
-                    },
-                    onNoteChange = { note = it },
-                    onDateChange = {
-                        dateInput = it
-                        errorMessage = null
-                    },
-                    onCategorySelected = {
-                        selectedCategoryId = it
-                        errorMessage = null
-                    },
-                    onAddCategoryClick = onAddCategoryClick,
-                    onSaveClick = {
-                        val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
-                        val parsedDate = parseDate(dateInput)
-                        val categoryId = selectedCategoryId
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 720.dp),
+                shape = RoundedCornerShape(30.dp),
+                color = CardSurface,
+                shadowElevation = 12.dp
+            ) {
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 22.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    item { AddExpenseHeader(onClose = onClose) }
+                    item {
+                        AddExpenseFormCard(
+                            isEditing = expenseToEdit != null,
+                            amount = amount,
+                            description = description,
+                            note = note,
+                            dateInput = dateInput,
+                            categories = categories,
+                            selectedCategoryId = selectedCategoryId,
+                            errorMessage = errorMessage,
+                            onAmountChange = {
+                                amount = it.filter { char -> char.isDigit() || char == '.' || char == ',' }
+                                errorMessage = null
+                            },
+                            onDescriptionChange = {
+                                description = it
+                                errorMessage = null
+                            },
+                            onNoteChange = { note = it },
+                            onDateChange = {
+                                dateInput = it
+                                errorMessage = null
+                            },
+                            onCategorySelected = {
+                                selectedCategoryId = it
+                                errorMessage = null
+                            },
+                            onAddCategoryClick = onAddCategoryClick,
+                            onSaveClick = {
+                                val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
+                                val parsedDate = parseDate(dateInput)
+                                val categoryId = selectedCategoryId
 
-                        when {
-                            parsedAmount == null || parsedAmount <= 0.0 ->
-                                errorMessage = "Vnesi veljaven znesek."
+                                when {
+                                    parsedAmount == null || parsedAmount <= 0.0 ->
+                                        errorMessage = "Vnesi veljaven znesek."
 
-                            description.isBlank() ->
-                                errorMessage = "Vnesi opis stroška."
+                                    description.isBlank() ->
+                                        errorMessage = "Vnesi opis stroška."
 
-                            categoryId == null ->
-                                errorMessage = "Izberi kategorijo."
+                                    categoryId == null ->
+                                        errorMessage = "Izberi kategorijo."
 
-                            parsedDate == null ->
-                                errorMessage = "Datum vnesi v obliki dd.MM.yyyy."
+                                    parsedDate == null ->
+                                        errorMessage = "Datum vnesi v obliki dd.MM.yyyy."
 
-                            else -> {
-                                val dateMillis = parsedDate
-                                    .atStartOfDay(ZoneId.systemDefault())
-                                    .toInstant()
-                                    .toEpochMilli()
-                                val fullDescription = if (note.isBlank()) {
-                                    description.trim()
-                                } else {
-                                    "${description.trim()}\n${note.trim()}"
+                                    else -> {
+                                        val dateMillis = parsedDate
+                                            .atStartOfDay(ZoneId.systemDefault())
+                                            .toInstant()
+                                            .toEpochMilli()
+                                        val fullDescription = if (note.isBlank()) {
+                                            description.trim()
+                                        } else {
+                                            "${description.trim()}\n${note.trim()}"
+                                        }
+
+                                        if (expenseToEdit == null) {
+                                            expenseViewModel.addExpense(
+                                                amount = parsedAmount,
+                                                date = dateMillis,
+                                                description = fullDescription,
+                                                categoryId = categoryId
+                                            )
+                                        } else {
+                                            expenseViewModel.updateExpense(
+                                                expense = expenseToEdit,
+                                                amount = parsedAmount,
+                                                date = dateMillis,
+                                                description = fullDescription,
+                                                categoryId = categoryId
+                                            )
+                                        }
+                                        onSaved()
+                                    }
                                 }
-
-                                if (expenseToEdit == null) {
-                                    expenseViewModel.addExpense(
-                                        amount = parsedAmount,
-                                        date = dateMillis,
-                                        description = fullDescription,
-                                        categoryId = categoryId
-                                    )
-                                } else {
-                                    expenseViewModel.updateExpense(
-                                        expense = expenseToEdit,
-                                        amount = parsedAmount,
-                                        date = dateMillis,
-                                        description = fullDescription,
-                                        categoryId = categoryId
-                                    )
-                                }
-                                onSaved()
                             }
-                        }
+                        )
                     }
-                )
+                }
             }
         }
     }
@@ -396,7 +407,7 @@ private fun CategoryTile(
             .height(82.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
-        color = if (isSelected) SoftAccent else Color(0xFFFBF8F1)
+        color = if (isSelected) LimeAccent.copy(alpha = 0.58f) else SoftAccent
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
@@ -417,7 +428,7 @@ private fun AddCategoryTile(onClick: () -> Unit) {
             .height(82.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
-        color = Color(0xFFFBF8F1)
+        color = SoftAccent
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -64,34 +67,40 @@ import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryBudgetRole
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
+import si.um.feri.budzetko.ui.theme.BudzetkoBackground
+import si.um.feri.budzetko.ui.theme.BudzetkoBorder
+import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.ui.theme.BudzetkoLime
+import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.viewmodel.CategoryListItem
 import si.um.feri.budzetko.viewmodel.CategoryUiState
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 
-private val ScreenBackground = Color(0xFFF7F4EE)
 private val CardSurface = Color(0xFFFFFFFF)
-private val PrimaryAccent = Color(0xFF156C6A)
-private val SecondaryAccent = Color(0xFFE9F3F2)
-private val SoftBorder = Color(0xFFE3DDD3)
-private val Ink = Color(0xFF191B1F)
-private val MutedInk = Color(0xFF71706A)
+private val PrimaryAccent = BudzetkoPurple
+private val SecondaryAccent = Color(0xFFF4F0FF)
+private val LimeAccent = BudzetkoLime
+private val SoftBorder = BudzetkoBorder
+private val Ink = BudzetkoInk
+private val MutedInk = Color(0xFF6D6774)
 private val Danger = Color(0xFFB3261E)
 private val CategoryAccentColors = listOf(
-    Color(0xFF156C6A),
-    Color(0xFFE2A23A),
-    Color(0xFF7D6BC4),
-    Color(0xFFE06F4F),
-    Color(0xFF4778A8),
-    Color(0xFF5E8C31),
-    Color(0xFFD4578F),
-    Color(0xFF6D5C4D)
+    Color(0xFFFFE96A),
+    Color(0xFFD8F25D),
+    Color(0xFFCFC6F4),
+    Color(0xFFFFC7D6),
+    Color(0xFFCFE9F7),
+    Color(0xFF8B6BFF),
+    Color(0xFFFFB864),
+    Color(0xFFC9F4D7)
 )
 
 @Composable
 fun CategoryScreen(
     viewModel: CategoryViewModel,
     onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onAddExpenseClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -117,6 +126,7 @@ fun CategoryScreen(
         onSaveClick = viewModel::saveCategory,
         onDismissDialog = viewModel::closeDialog,
         onSettingsClick = onSettingsClick,
+        onProfileClick = onProfileClick,
         onAddExpenseClick = onAddExpenseClick,
         onTransactionsClick = onTransactionsClick,
         modifier = modifier
@@ -143,13 +153,14 @@ private fun CategoryContent(
     onSaveClick: () -> Unit,
     onDismissDialog: () -> Unit,
     onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onTransactionsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = ScreenBackground,
+        containerColor = BudzetkoBackground,
         bottomBar = {
             BudzetkoBottomBar(
                 onBudgetClick = onTransactionsClick,
@@ -161,13 +172,13 @@ private fun CategoryContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ScreenBackground)
+                .background(BudzetkoBackground)
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 24.dp, top = 34.dp, end = 24.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                CategoryHeader()
+                CategoryHeader(onProfileClick = onProfileClick)
             }
 
             if (uiState.categoryItems.isEmpty()) {
@@ -226,7 +237,7 @@ private fun CategoryContent(
 }
 
 @Composable
-private fun CategoryHeader() {
+private fun CategoryHeader(onProfileClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -249,17 +260,22 @@ private fun CategoryHeader() {
         }
 
         IconButton(
-            onClick = {},
+            onClick = onProfileClick,
             modifier = Modifier
-                .size(46.dp)
+                .size(54.dp)
+                .shadow(
+                    elevation = 10.dp,
+                    shape = CircleShape,
+                    ambientColor = PrimaryAccent.copy(alpha = 0.10f),
+                    spotColor = PrimaryAccent.copy(alpha = 0.12f)
+                )
                 .clip(CircleShape)
-                .background(CardSurface)
-                .border(BorderStroke(1.dp, SoftBorder), CircleShape)
+                .background(Ink)
         ) {
             Icon(
                 imageVector = Icons.Filled.Person,
                 contentDescription = stringResource(R.string.profile),
-                tint = PrimaryAccent
+                tint = Color.White
             )
         }
     }
@@ -276,12 +292,12 @@ private fun CategoryCard(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 5.dp,
-                shape = RoundedCornerShape(26.dp),
-                ambientColor = Color.Black.copy(alpha = 0.05f),
-                spotColor = Color.Black.copy(alpha = 0.08f)
+                elevation = 8.dp,
+                shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp, bottomStart = 28.dp, bottomEnd = 28.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
             ),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(30.dp),
         colors = CardDefaults.cardColors(containerColor = CardSurface),
         border = BorderStroke(1.dp, SoftBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -289,7 +305,7 @@ private fun CategoryCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 18.dp, top = 17.dp, end = 12.dp, bottom = 17.dp),
+                .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             CategoryLeadingIcon(category = category)
@@ -316,29 +332,52 @@ private fun CategoryCard(
                 )
             }
 
-            IconButton(
-                onClick = onEditClick,
-                modifier = Modifier.size(32.dp)
+            Row(
+                modifier = Modifier.width(68.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
+                CategoryActionButton(
+                    icon = Icons.Outlined.Edit,
                     contentDescription = stringResource(R.string.edit_category),
-                    tint = PrimaryAccent,
-                    modifier = Modifier.size(18.dp)
+                    tint = Ink,
+                    background = Color.Transparent,
+                    onClick = onEditClick
                 )
-            }
-            IconButton(
-                onClick = onDeleteClick,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
+                CategoryActionButton(
+                    icon = Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.delete_category),
                     tint = Danger,
-                    modifier = Modifier.size(18.dp)
+                    background = Color.Transparent,
+                    onClick = onDeleteClick
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CategoryActionButton(
+    icon: ImageVector,
+    contentDescription: String,
+    tint: Color,
+    background: Color,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(30.dp)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(background)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(17.dp)
+        )
     }
 }
 
@@ -349,22 +388,22 @@ private fun CategoryLeadingIcon(category: CategoryEntity) {
 
     Box(
         modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(accentColor.copy(alpha = 0.14f)),
+            .size(38.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(accentColor.copy(alpha = 0.72f)),
         contentAlignment = Alignment.Center
     ) {
         if (emoji.isNullOrBlank()) {
             Box(
                 modifier = Modifier
-                    .size(12.dp)
+                    .size(14.dp)
                     .clip(CircleShape)
-                    .background(accentColor)
+                    .background(Ink)
             )
         } else {
             Text(
                 text = emoji,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleLarge
             )
         }
     }
@@ -376,10 +415,16 @@ private fun CreateNewButton(onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(16.dp),
+            .height(58.dp)
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = Ink.copy(alpha = 0.10f),
+                spotColor = Ink.copy(alpha = 0.16f)
+            ),
+        shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = PrimaryAccent,
+            containerColor = Ink,
             contentColor = Color.White
         )
     ) {
@@ -402,7 +447,7 @@ private fun EmptyCategoryCard(onAddClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(30.dp),
-        color = ScreenBackground,
+        color = CardSurface,
         border = BorderStroke(1.dp, SoftBorder)
     ) {
         Column(
@@ -487,7 +532,8 @@ private fun CategoryDialog(
                                 onClick = onDismiss,
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .border(BorderStroke(1.dp, SoftBorder), CircleShape)
+                                    .clip(CircleShape)
+                                    .background(CardSurface)
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Close,
@@ -560,7 +606,7 @@ private fun CategoryDialog(
                                 .height(56.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = PrimaryAccent,
+                                containerColor = Ink,
                                 contentColor = Color.White
                             )
                         ) {
@@ -605,7 +651,7 @@ private fun CategoryBudgetRolePicker(
                     onClick = { onBudgetRoleSelected(role) },
                     label = { Text(text = stringResource(role.labelRes())) },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = SecondaryAccent,
+                        selectedContainerColor = LimeAccent.copy(alpha = 0.55f),
                         selectedLabelColor = PrimaryAccent
                     )
                 )
@@ -815,16 +861,22 @@ private fun CategoryLimitPreview(
                 singleLine = true,
                 modifier = Modifier.width(116.dp)
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Button(
                 onClick = onSuggestLimit,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Ink,
-                    contentColor = Color.White
+                    containerColor = LimeAccent,
+                    contentColor = Ink
                 )
             ) {
+                Icon(
+                    imageVector = Icons.Outlined.TipsAndUpdates,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = stringResource(R.string.suggest_limit),
                     fontWeight = FontWeight.Bold
@@ -921,6 +973,7 @@ private fun CategoryContentPreview() {
             onSaveClick = {},
             onDismissDialog = {},
             onSettingsClick = {},
+            onProfileClick = {},
             onAddExpenseClick = {},
             onTransactionsClick = {}
         )

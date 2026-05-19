@@ -26,17 +26,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import si.um.feri.budzetko.R
+import si.um.feri.budzetko.ui.theme.BudzetkoBackground
+import si.um.feri.budzetko.ui.theme.BudzetkoBorder
+import si.um.feri.budzetko.ui.theme.BudzetkoInk
 
-private val ScreenBackground = Color(0xFFF7F4EE)
 private val CardSurface = Color(0xFFFFFFFF)
-private val PrimaryAccent = Color(0xFF156C6A)
-private val SoftBorder = Color(0xFFE3DDD3)
-private val Ink = Color(0xFF191B1F)
+private val SoftBorder = BudzetkoBorder
+private val Ink = BudzetkoInk
 
 @Composable
 fun BudzetkoBottomBar(
@@ -50,17 +52,23 @@ fun BudzetkoBottomBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(ScreenBackground)
+            .background(BudzetkoBackground)
             .padding(start = 24.dp, end = 24.dp, bottom = 18.dp, top = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .height(54.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    ambientColor = Color.Black.copy(alpha = 0.06f),
+                    spotColor = Color.Black.copy(alpha = 0.08f)
+                )
+                .clip(RoundedCornerShape(28.dp))
                 .background(CardSurface)
-                .border(BorderStroke(1.dp, SoftBorder), RoundedCornerShape(18.dp))
+                .border(BorderStroke(1.dp, SoftBorder), RoundedCornerShape(28.dp))
                 .padding(horizontal = 18.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -75,9 +83,15 @@ fun BudzetkoBottomBar(
         IconButton(
             onClick = onAddExpenseClick,
             modifier = Modifier
-                .size(58.dp)
+                .size(60.dp)
+                .shadow(
+                    elevation = 14.dp,
+                    shape = CircleShape,
+                    ambientColor = Color.Black.copy(alpha = 0.18f),
+                    spotColor = Color.Black.copy(alpha = 0.24f)
+                )
                 .clip(CircleShape)
-                .background(PrimaryAccent)
+                .background(Ink)
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,

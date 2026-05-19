@@ -50,14 +50,18 @@ import java.time.format.DateTimeFormatter
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
+import si.um.feri.budzetko.ui.theme.BudzetkoBackground
+import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.ui.theme.BudzetkoPurple
+import si.um.feri.budzetko.ui.theme.BudzetkoSurface
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
 
-private val ScreenBackground = Color(0xFFF7F4EE)
-private val CardSurface = Color(0xFFFFFFFF)
-private val PrimaryAccent = Color(0xFF156C6A)
+private val ScreenBackground = BudzetkoBackground
+private val CardSurface = BudzetkoSurface
+private val PrimaryAccent = BudzetkoPurple
 private val SoftAccent = Color(0xFFE9F3F2)
-private val Ink = Color(0xFF191B1F)
+private val Ink = BudzetkoInk
 private val MutedInk = Color(0xFF71706A)
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -69,6 +73,7 @@ fun TransactionsScreen(
     onHomeClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onEditExpenseClick: (ExpenseEntity) -> Unit,
+    onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     val expenses by expenseViewModel.expenses.collectAsState()
@@ -104,7 +109,7 @@ fun TransactionsScreen(
             contentPadding = PaddingValues(start = 22.dp, top = 30.dp, end = 22.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { TransactionsHeader() }
+            item { TransactionsHeader(onProfileClick = onProfileClick) }
             item { TotalSpentCard(totalSpent = totalSpent) }
             item {
                 SearchRow(
@@ -141,7 +146,7 @@ fun TransactionsScreen(
 }
 
 @Composable
-private fun TransactionsHeader() {
+private fun TransactionsHeader(onProfileClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -158,7 +163,7 @@ private fun TransactionsHeader() {
             )
         }
         IconButton(
-            onClick = {},
+            onClick = onProfileClick,
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
