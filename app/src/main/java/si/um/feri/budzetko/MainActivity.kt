@@ -16,12 +16,17 @@ import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.ExpenseRepository
 import si.um.feri.budzetko.data.repository.UserRepository
+import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.screens.AddExpenseScreen
+import si.um.feri.budzetko.ui.screens.TransactionsScreen
+import si.um.feri.budzetko.ui.screens.categories.CategoryScreen
+import si.um.feri.budzetko.ui.screens.profile.ProfileScreen
 import si.um.feri.budzetko.ui.screens.settings.SettingsScreen
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
+import si.um.feri.budzetko.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,6 +50,8 @@ fun BudzetkoApp() {
     val expenseRepository = remember { ExpenseRepository(database.expenseDao()) }
 
     var currentScreen by remember { mutableStateOf(BudzetkoScreen.Categories) }
+    var isAddExpenseDialogOpen by remember { mutableStateOf(false) }
+    var expenseBeingEdited by remember { mutableStateOf<ExpenseEntity?>(null) }
 
     val categoryViewModel: CategoryViewModel = viewModel(
         factory = CategoryViewModel.Factory(
@@ -61,6 +68,9 @@ fun BudzetkoApp() {
             userRepository = userRepository
         )
     )
+    val userViewModel: UserViewModel = viewModel(
+        factory = UserViewModel.Factory(userRepository)
+    )
 
     val expenseViewModel: ExpenseViewModel = viewModel(
         factory = ExpenseViewModel.Factory(
@@ -69,22 +79,82 @@ fun BudzetkoApp() {
     )
 
     when (currentScreen) {
-        BudzetkoScreen.Categories -> AddExpenseScreen(
-            expenseViewModel = expenseViewModel,
-            categoryViewModel = categoryViewModel
+        BudzetkoScreen.Categories -> CategoryScreen(
+            viewModel = categoryViewModel,
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            onProfileClick = { currentScreen = BudzetkoScreen.Profile },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = true
+            },
+            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions }
         )
 
         BudzetkoScreen.Settings -> SettingsScreen(
             budgetViewModel = budgetViewModel,
             onHomeClick = { currentScreen = BudzetkoScreen.Categories },
-            onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories }
+            onProfileClick = { currentScreen = BudzetkoScreen.Profile },
+            onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = true
+            },
+            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions }
+        )
+
+        BudzetkoScreen.Transactions -> TransactionsScreen(
+            expenseViewModel = expenseViewModel,
+            categoryViewModel = categoryViewModel,
+            onHomeClick = { currentScreen = BudzetkoScreen.Categories },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = true
+            },
+            onEditExpenseClick = {
+                expenseBeingEdited = it
+                isAddExpenseDialogOpen = true
+            },
+            onProfileClick = { currentScreen = BudzetkoScreen.Profile },
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+        )
+
+        BudzetkoScreen.Profile -> ProfileScreen(
+            viewModel = userViewModel,
+            onBackClick = { currentScreen = BudzetkoScreen.Categories },
+            onHomeClick = { currentScreen = BudzetkoScreen.Categories },
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+        )
+    }
+
+    if (isAddExpenseDialogOpen) {
+        AddExpenseScreen(
+            expenseViewModel = expenseViewModel,
+            categoryViewModel = categoryViewModel,
+            expenseToEdit = expenseBeingEdited,
+            onClose = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = false
+            },
+            onSaved = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = false
+                currentScreen = BudzetkoScreen.Transactions
+            },
+            onAddCategoryClick = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = false
+                categoryViewModel.openCreateDialog()
+                currentScreen = BudzetkoScreen.Categories
+            }
         )
     }
 }
 
 private enum class BudzetkoScreen {
     Categories,
-    Settings
+    Settings,
+    Transactions,
+    Profile
 }
 
 @Preview(showBackground = true)

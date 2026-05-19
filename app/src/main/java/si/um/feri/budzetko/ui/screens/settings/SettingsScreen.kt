@@ -3,6 +3,7 @@ package si.um.feri.budzetko.ui.screens.settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -61,23 +63,32 @@ import androidx.compose.ui.unit.dp
 import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
+import si.um.feri.budzetko.ui.theme.BudzetkoBackground
+import si.um.feri.budzetko.ui.theme.BudzetkoBorder
+import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.ui.theme.BudzetkoLime
+import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.viewmodel.BudgetLimitDraft
 import si.um.feri.budzetko.viewmodel.BudgetUiState
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
 
-private val ScreenBackground = Color(0xFFF7F4EE)
 private val CardSurface = Color(0xFFFFFFFF)
-private val PrimaryAccent = Color(0xFF156C6A)
-private val SoftBorder = Color(0xFFE3DDD3)
-private val Ink = Color(0xFF191B1F)
-private val MutedInk = Color(0xFF71706A)
+private val PrimaryAccent = BudzetkoPurple
+private val SecondaryAccent = Color(0xFFF4F0FF)
+private val LimeAccent = BudzetkoLime
+private val SoftBorder = BudzetkoBorder
+private val Ink = BudzetkoInk
+private val MutedInk = Color(0xFF6D6774)
 
 @Composable
 fun SettingsScreen(
     budgetViewModel: BudgetViewModel,
     onHomeClick: () -> Unit,
+    onProfileClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
+    onAddExpenseClick: () -> Unit = {},
+    onTransactionsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val budgetUiState by budgetViewModel.uiState.collectAsState()
@@ -85,6 +96,9 @@ fun SettingsScreen(
     SettingsContent(
         budgetUiState = budgetUiState,
         onHomeClick = onHomeClick,
+        onProfileClick = onProfileClick,
+        onAddExpenseClick = onAddExpenseClick,
+        onTransactionsClick = onTransactionsClick,
         onCategorySettingsClick = onCategorySettingsClick,
         onOpenBudget = budgetViewModel::openBudgetDialog,
         onCloseBudget = budgetViewModel::closeBudgetDialog,
@@ -104,6 +118,9 @@ fun SettingsScreen(
 private fun SettingsContent(
     budgetUiState: BudgetUiState,
     onHomeClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onAddExpenseClick: () -> Unit,
+    onTransactionsClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
     onOpenBudget: () -> Unit,
     onCloseBudget: () -> Unit,
@@ -119,10 +136,12 @@ private fun SettingsContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = ScreenBackground,
+        containerColor = BudzetkoBackground,
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
+                onBudgetClick = onTransactionsClick,
+                onAddExpenseClick = onAddExpenseClick,
                 onSettingsClick = {}
             )
         }
@@ -130,13 +149,13 @@ private fun SettingsContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ScreenBackground)
+                .background(BudzetkoBackground)
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 24.dp, top = 34.dp, end = 24.dp, bottom = 26.dp),
+            contentPadding = PaddingValues(start = 22.dp, top = 28.dp, end = 22.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             item { SettingsHeader() }
-            item { ProfileCard() }
+            item { ProfileCard(onClick = onProfileClick) }
             item {
                 SettingsMenuCard(
                     onOpenBudget = onOpenBudget,
@@ -165,11 +184,11 @@ private fun SettingsContent(
 
 @Composable
 private fun SettingsHeader() {
-    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+    Column(modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)) {
         Text(
             text = stringResource(R.string.settings_title),
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.Bold,
             color = Ink
         )
         Text(
@@ -182,9 +201,17 @@ private fun SettingsHeader() {
 }
 
 @Composable
-private fun ProfileCard() {
+private fun ProfileCard(onClick: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp, bottomStart = 28.dp, bottomEnd = 28.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
+            )
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(30.dp),
         color = CardSurface,
         border = BorderStroke(1.dp, SoftBorder)
@@ -197,13 +224,13 @@ private fun ProfileCard() {
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE9F3F2)),
+                    .background(LimeAccent.copy(alpha = 0.55f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Person,
                     contentDescription = null,
-                    tint = PrimaryAccent,
+                    tint = Ink,
                     modifier = Modifier.size(42.dp)
                 )
             }
@@ -216,7 +243,7 @@ private fun ProfileCard() {
                     color = Ink
                 )
                 Text(
-                    text = stringResource(R.string.settings_email),
+                    text = "ana@budzetko.local",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MutedInk
                 )
@@ -231,7 +258,14 @@ private fun SettingsMenuCard(
     onCategorySettingsClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(30.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
+            ),
         shape = RoundedCornerShape(30.dp),
         color = CardSurface,
         border = BorderStroke(1.dp, SoftBorder)
@@ -262,9 +296,10 @@ private fun SettingsMenuRow(
             onClick = onClick,
             modifier = Modifier
                 .size(40.dp)
-                .border(BorderStroke(1.dp, SoftBorder), CircleShape)
+                .clip(CircleShape)
+                .background(SecondaryAccent)
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Ink)
+            Icon(imageVector = icon, contentDescription = null, tint = PrimaryAccent)
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
@@ -404,8 +439,8 @@ private fun BudgetDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent, contentColor = Color.White)
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
                             ) {
                                 Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -511,7 +546,7 @@ private fun BudgetLimitCard(
                     text = "${draft.percent} %",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Ink
+                    color = PrimaryAccent
                 )
                 IconButton(
                     onClick = {
@@ -550,9 +585,9 @@ private fun BudgetLimitCard(
 private fun CategoryMarker(category: CategoryEntity) {
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(32.dp)
             .clip(CircleShape)
-            .background(PrimaryAccent.copy(alpha = 0.14f)),
+            .background(SecondaryAccent),
         contentAlignment = Alignment.Center
     ) {
         if (category.emoji.isNullOrBlank()) {
@@ -560,7 +595,7 @@ private fun CategoryMarker(category: CategoryEntity) {
                 modifier = Modifier
                     .size(12.dp)
                     .clip(CircleShape)
-                    .background(PrimaryAccent)
+                    .background(LimeAccent)
             )
         } else {
             Text(text = category.emoji.orEmpty())
@@ -594,6 +629,9 @@ private fun SettingsContentPreview() {
         SettingsContent(
             budgetUiState = BudgetUiState(),
             onHomeClick = {},
+            onProfileClick = {},
+            onAddExpenseClick = {},
+            onTransactionsClick = {},
             onCategorySettingsClick = {},
             onOpenBudget = {},
             onCloseBudget = {},
