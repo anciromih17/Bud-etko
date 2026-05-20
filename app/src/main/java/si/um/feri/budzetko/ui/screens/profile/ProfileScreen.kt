@@ -69,6 +69,7 @@ fun ProfileScreen(
     viewModel: UserViewModel,
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
+    onAnalyticsClick: () -> Unit = {},
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -78,6 +79,7 @@ fun ProfileScreen(
         uiState = uiState,
         onBackClick = onBackClick,
         onHomeClick = onHomeClick,
+        onAnalyticsClick = onAnalyticsClick,
         onSettingsClick = onSettingsClick,
         modifier = modifier
     )
@@ -88,6 +90,7 @@ private fun ProfileContent(
     uiState: UserUiState,
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -97,6 +100,7 @@ private fun ProfileContent(
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
+                onAnalyticsClick = onAnalyticsClick,
                 onSettingsClick = onSettingsClick
             )
         }
@@ -370,6 +374,7 @@ private fun ProfileContentPreview() {
             uiState = UserUiState(),
             onBackClick = {},
             onHomeClick = {},
+            onAnalyticsClick = {},
             onSettingsClick = {}
         )
     }

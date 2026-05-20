@@ -73,6 +73,8 @@ import si.um.feri.budzetko.ui.theme.BudzetkoInk
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.ui.theme.BudzetkoCategoryColors
+import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.CategoryListItem
 import si.um.feri.budzetko.viewmodel.CategoryUiState
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
@@ -85,24 +87,16 @@ private val SoftBorder = BudzetkoBorder
 private val Ink = BudzetkoInk
 private val MutedInk = Color(0xFF6D6774)
 private val Danger = Color(0xFFB3261E)
-private val CategoryAccentColors = listOf(
-    Color(0xFFFFE96A),
-    Color(0xFFD8F25D),
-    Color(0xFFCFC6F4),
-    Color(0xFFFFC7D6),
-    Color(0xFFCFE9F7),
-    Color(0xFF8B6BFF),
-    Color(0xFFFFB864),
-    Color(0xFFC9F4D7)
-)
 
 @Composable
 fun CategoryScreen(
     viewModel: CategoryViewModel,
+    onHomeClick: () -> Unit = {},
     onSettingsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onAddExpenseClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
+    onAnalyticsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -125,10 +119,12 @@ fun CategoryScreen(
         onSuggestLimit = viewModel::suggestCurrentCategoryLimit,
         onSaveClick = viewModel::saveCategory,
         onDismissDialog = viewModel::closeDialog,
+        onHomeClick = onHomeClick,
         onSettingsClick = onSettingsClick,
         onProfileClick = onProfileClick,
         onAddExpenseClick = onAddExpenseClick,
         onTransactionsClick = onTransactionsClick,
+        onAnalyticsClick = onAnalyticsClick,
         modifier = modifier
     )
 }
@@ -152,10 +148,12 @@ private fun CategoryContent(
     onSuggestLimit: () -> Unit,
     onSaveClick: () -> Unit,
     onDismissDialog: () -> Unit,
+    onHomeClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onTransactionsClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -163,8 +161,10 @@ private fun CategoryContent(
         containerColor = BudzetkoBackground,
         bottomBar = {
             BudzetkoBottomBar(
+                onHomeClick = onHomeClick,
                 onBudgetClick = onTransactionsClick,
                 onAddExpenseClick = onAddExpenseClick,
+                onAnalyticsClick = onAnalyticsClick,
                 onSettingsClick = onSettingsClick
             )
         }
@@ -383,8 +383,12 @@ private fun CategoryActionButton(
 
 @Composable
 private fun CategoryLeadingIcon(category: CategoryEntity) {
-    val accentColor = categoryAccentColor(category.colorIndex)
     val emoji = category.emoji
+    val accentColor = budzetkoCategoryColor(
+        categoryId = category.id,
+        colorIndex = category.colorIndex,
+        hasEmoji = !emoji.isNullOrBlank()
+    )
 
     Box(
         modifier = Modifier
@@ -468,11 +472,6 @@ private fun EmptyCategoryCard(onAddClick: () -> Unit) {
             CreateNewButton(onClick = onAddClick)
         }
     }
-}
-
-private fun categoryAccentColor(colorIndex: Int): Color {
-    val index = colorIndex.coerceAtLeast(0) % CategoryAccentColors.size
-    return CategoryAccentColors[index]
 }
 
 private fun Double.formatMoney(): String = "%.2f".format(this)
@@ -809,7 +808,7 @@ private fun CategoryColorRow(
     ) {
         repeat(4) { offset ->
             val index = startIndex + offset
-            val color = CategoryAccentColors[index % CategoryAccentColors.size]
+            val color = BudzetkoCategoryColors[index % BudzetkoCategoryColors.size]
             val isSelected = selectedEmoji.isNullOrBlank() && selectedColorIndex == index
             IconButton(
                 onClick = { onColorSelected(index) },
@@ -972,10 +971,12 @@ private fun CategoryContentPreview() {
             onSuggestLimit = {},
             onSaveClick = {},
             onDismissDialog = {},
+            onHomeClick = {},
             onSettingsClick = {},
             onProfileClick = {},
             onAddExpenseClick = {},
-            onTransactionsClick = {}
+            onTransactionsClick = {},
+            onAnalyticsClick = {}
         )
     }
 }
