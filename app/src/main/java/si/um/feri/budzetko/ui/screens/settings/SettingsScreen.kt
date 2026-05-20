@@ -89,6 +89,7 @@ fun SettingsScreen(
     onCategorySettingsClick: () -> Unit,
     onAddExpenseClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
+    onAnalyticsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val budgetUiState by budgetViewModel.uiState.collectAsState()
@@ -99,6 +100,7 @@ fun SettingsScreen(
         onProfileClick = onProfileClick,
         onAddExpenseClick = onAddExpenseClick,
         onTransactionsClick = onTransactionsClick,
+        onAnalyticsClick = onAnalyticsClick,
         onCategorySettingsClick = onCategorySettingsClick,
         onOpenBudget = budgetViewModel::openBudgetDialog,
         onCloseBudget = budgetViewModel::closeBudgetDialog,
@@ -121,6 +123,7 @@ private fun SettingsContent(
     onProfileClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onTransactionsClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
     onOpenBudget: () -> Unit,
     onCloseBudget: () -> Unit,
@@ -142,6 +145,7 @@ private fun SettingsContent(
                 onHomeClick = onHomeClick,
                 onBudgetClick = onTransactionsClick,
                 onAddExpenseClick = onAddExpenseClick,
+                onAnalyticsClick = onAnalyticsClick,
                 onSettingsClick = {}
             )
         }
@@ -632,6 +636,7 @@ private fun SettingsContentPreview() {
             onProfileClick = {},
             onAddExpenseClick = {},
             onTransactionsClick = {},
+            onAnalyticsClick = {},
             onCategorySettingsClick = {},
             onOpenBudget = {},
             onCloseBudget = {},

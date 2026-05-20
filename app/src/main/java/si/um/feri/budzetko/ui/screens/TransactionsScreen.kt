@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,10 +23,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -54,17 +57,28 @@ import si.um.feri.budzetko.ui.theme.BudzetkoBackground
 import si.um.feri.budzetko.ui.theme.BudzetkoInk
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoSurface
+import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
 
 private val ScreenBackground = BudzetkoBackground
 private val CardSurface = BudzetkoSurface
 private val PrimaryAccent = BudzetkoPurple
-private val SoftAccent = Color(0xFFE9F3F2)
+private val SoftAccent = Color(0xFFF4F0FF)
 private val Ink = BudzetkoInk
 private val MutedInk = Color(0xFF71706A)
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+private enum class ExpenseSortMode(val label: String) {
+    NEWEST("Najnovejše"),
+    OLDEST("Najstarejše"),
+    AMOUNT_HIGH("Najvišji znesek"),
+    AMOUNT_LOW("Najnižji znesek");
+
+    fun next(): ExpenseSortMode {
+        return entries[(ordinal + 1) % entries.size]
+    }
+}
 
 @Composable
 fun TransactionsScreen(
@@ -74,19 +88,25 @@ fun TransactionsScreen(
     onAddExpenseClick: () -> Unit,
     onEditExpenseClick: (ExpenseEntity) -> Unit,
     onProfileClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     val expenses by expenseViewModel.expenses.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
-    val categoriesById = categoryState.categories.associateBy { it.id }
+    val categories = categoryState.categories.sortedBy { it.name.lowercase() }
+    val categoriesById = categories.associateBy { it.id }
     var search by remember { mutableStateOf("") }
+    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
+    var sortMode by remember { mutableStateOf(ExpenseSortMode.NEWEST) }
 
     val filteredExpenses = expenses.filter { expense ->
         val category = categoriesById[expense.categoryId]
-        search.isBlank() ||
+        val matchesSearch = search.isBlank() ||
             expense.description.contains(search, ignoreCase = true) ||
             category?.name?.contains(search, ignoreCase = true) == true
-    }
+        val matchesCategory = selectedCategoryId == null || expense.categoryId == selectedCategoryId
+        matchesSearch && matchesCategory
+    }.sortedWith(sortMode.comparator())
     val totalSpent = filteredExpenses.sumOf { it.amount }
     val groupedExpenses = filteredExpenses.groupBy { it.dateLabel() }
 
@@ -97,6 +117,7 @@ fun TransactionsScreen(
                 onHomeClick = onHomeClick,
                 onBudgetClick = {},
                 onAddExpenseClick = onAddExpenseClick,
+                onAnalyticsClick = onAnalyticsClick,
                 onSettingsClick = onSettingsClick
             )
         }
@@ -114,7 +135,16 @@ fun TransactionsScreen(
             item {
                 SearchRow(
                     search = search,
-                    onSearchChange = { search = it }
+                    sortMode = sortMode,
+                    onSearchChange = { search = it },
+                    onSortClick = { sortMode = sortMode.next() }
+                )
+            }
+            item {
+                CategoryFilterRow(
+                    categories = categories,
+                    selectedCategoryId = selectedCategoryId,
+                    onCategorySelected = { selectedCategoryId = it }
                 )
             }
 
@@ -177,7 +207,14 @@ private fun TransactionsHeader(onProfileClick: () -> Unit) {
 @Composable
 private fun TotalSpentCard(totalSpent: Double) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(30.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
+            ),
         shape = RoundedCornerShape(30.dp),
         color = CardSurface
     ) {
@@ -201,20 +238,77 @@ private fun TotalSpentCard(totalSpent: Double) {
 @Composable
 private fun SearchRow(
     search: String,
-    onSearchChange: (String) -> Unit
+    sortMode: ExpenseSortMode,
+    onSearchChange: (String) -> Unit,
+    onSortClick: () -> Unit
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(34.dp), tint = Ink)
-        Spacer(modifier = Modifier.width(10.dp))
-        OutlinedTextField(
-            value = search,
-            onValueChange = onSearchChange,
-            placeholder = { Text("Išči...") },
-            singleLine = true,
-            modifier = Modifier.weight(1f)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(34.dp), tint = Ink)
+            Spacer(modifier = Modifier.width(10.dp))
+            OutlinedTextField(
+                value = search,
+                onValueChange = onSearchChange,
+                placeholder = { Text("Išči...") },
+                singleLine = true,
+                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            IconButton(onClick = onSortClick, modifier = Modifier.size(42.dp)) {
+                Icon(Icons.Outlined.SwapVert, contentDescription = "Razvrsti", modifier = Modifier.size(30.dp), tint = Ink)
+            }
+        }
+        Text(
+            text = "Razvrščeno: ${sortMode.label}",
+            modifier = Modifier.padding(start = 44.dp),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MutedInk
         )
-        Spacer(modifier = Modifier.width(10.dp))
-        Icon(Icons.Outlined.FilterList, contentDescription = null, modifier = Modifier.size(32.dp), tint = Ink)
+    }
+}
+
+@Composable
+private fun CategoryFilterRow(
+    categories: List<CategoryEntity>,
+    selectedCategoryId: Long?,
+    onCategorySelected: (Long?) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedCategoryId == null,
+                onClick = { onCategorySelected(null) },
+                label = { Text(text = "Vse") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Ink,
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+        items(categories, key = { it.id }) { category ->
+            FilterChip(
+                selected = selectedCategoryId == category.id,
+                onClick = { onCategorySelected(category.id) },
+                label = { Text(text = category.name) },
+                leadingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clip(CircleShape)
+                            .background(transactionIconBackground(category))
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PrimaryAccent.copy(alpha = 0.18f),
+                    selectedLabelColor = Ink
+                )
+            )
+        }
     }
 }
 
@@ -237,11 +331,12 @@ private fun TransactionsGroupCard(
         shape = RoundedCornerShape(30.dp),
         color = CardSurface
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             expenses.forEach { expense ->
                 TransactionRow(
                     expense = expense,
                     category = categoriesById[expense.categoryId],
+                    iconBackground = transactionIconBackground(categoriesById[expense.categoryId]),
                     onEditExpenseClick = onEditExpenseClick,
                     onDeleteExpenseClick = onDeleteExpenseClick
                 )
@@ -254,6 +349,7 @@ private fun TransactionsGroupCard(
 private fun TransactionRow(
     expense: ExpenseEntity,
     category: CategoryEntity?,
+    iconBackground: Color,
     onEditExpenseClick: (ExpenseEntity) -> Unit,
     onDeleteExpenseClick: (ExpenseEntity) -> Unit
 ) {
@@ -262,7 +358,7 @@ private fun TransactionRow(
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(SoftAccent),
+                .background(iconBackground.copy(alpha = 0.70f)),
             contentAlignment = Alignment.Center
         ) {
             Text(text = category?.emoji ?: "●")
@@ -279,6 +375,28 @@ private fun TransactionRow(
         IconButton(onClick = { onDeleteExpenseClick(expense) }, modifier = Modifier.size(32.dp)) {
             Icon(Icons.Outlined.Delete, contentDescription = "Izbriši", tint = Danger, modifier = Modifier.size(18.dp))
         }
+    }
+}
+
+private fun transactionIconBackground(category: CategoryEntity?): Color {
+    if (category == null) return SoftAccent
+    return budzetkoCategoryColor(
+        categoryId = category.id,
+        colorIndex = category.colorIndex,
+        hasEmoji = !category.emoji.isNullOrBlank()
+    )
+}
+
+private fun ExpenseSortMode.comparator(): Comparator<ExpenseEntity> {
+    return when (this) {
+        ExpenseSortMode.NEWEST -> compareByDescending<ExpenseEntity> { it.date }
+            .thenByDescending { it.updatedAt }
+        ExpenseSortMode.OLDEST -> compareBy<ExpenseEntity> { it.date }
+            .thenBy { it.updatedAt }
+        ExpenseSortMode.AMOUNT_HIGH -> compareByDescending<ExpenseEntity> { it.amount }
+            .thenByDescending { it.date }
+        ExpenseSortMode.AMOUNT_LOW -> compareBy<ExpenseEntity> { it.amount }
+            .thenByDescending { it.date }
     }
 }
 
