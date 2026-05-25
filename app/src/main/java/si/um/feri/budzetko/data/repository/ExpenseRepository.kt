@@ -6,8 +6,10 @@ import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.data.entity.SyncStatus
 
 class ExpenseRepository(
-    private val expenseDao: ExpenseDao
+    private val expenseDao: ExpenseDao,
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
 ) {
+
     fun observeExpenses(userId: String): Flow<List<ExpenseEntity>> {
         return expenseDao.observeExpenses(userId)
     }
@@ -29,19 +31,33 @@ class ExpenseRepository(
             updatedAt = System.currentTimeMillis()
         )
 
-        return expenseDao.insertExpense(expense)
+        val localId = expenseDao.insertExpense(expense)
+
+        firestoreRepository.saveExpense(
+            expense.copy(
+                id = localId,
+                syncStatus = SyncStatus.SYNCED
+            )
+        )
+
+        return localId
     }
 
     suspend fun updateExpense(expense: ExpenseEntity) {
-        expenseDao.updateExpense(
-            expense.copy(
-                syncStatus = SyncStatus.PENDING,
-                updatedAt = System.currentTimeMillis()
-            )
+        val updatedExpense = expense.copy(
+            syncStatus = SyncStatus.PENDING,
+            updatedAt = System.currentTimeMillis()
+        )
+
+        expenseDao.updateExpense(updatedExpense)
+
+        firestoreRepository.saveExpense(
+            updatedExpense.copy(syncStatus = SyncStatus.SYNCED)
         )
     }
 
     suspend fun deleteExpense(expense: ExpenseEntity) {
         expenseDao.deleteExpense(expense)
+        firestoreRepository.deleteExpense(expense)
     }
 }

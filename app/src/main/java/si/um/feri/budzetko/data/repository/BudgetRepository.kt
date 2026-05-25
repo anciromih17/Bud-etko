@@ -1,13 +1,14 @@
 package si.um.feri.budzetko.data.repository
 
+import kotlinx.coroutines.flow.Flow
 import si.um.feri.budzetko.data.dao.BudgetDao
 import si.um.feri.budzetko.data.entity.BudgetCategoryEntity
 import si.um.feri.budzetko.data.entity.BudgetEntity
 import si.um.feri.budzetko.data.model.CategoryWithMonthlyLimit
-import kotlinx.coroutines.flow.Flow
 
 class BudgetRepository(
-    private val budgetDao: BudgetDao
+    private val budgetDao: BudgetDao,
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
 ) {
     suspend fun getBudget(userId: String, month: Int, year: Int): BudgetEntity? {
         return budgetDao.getBudget(userId, month, year)
@@ -31,6 +32,7 @@ class BudgetRepository(
         year: Int
     ): Map<Long, Double> {
         val budget = budgetDao.getBudget(userId, month, year) ?: return emptyMap()
+
         return budgetDao.getBudgetCategories(budget.id).associate {
             it.categoryId to it.limitAmount
         }
@@ -44,6 +46,7 @@ class BudgetRepository(
         limits: Map<Long, Double>
     ) {
         val budget = budgetDao.getBudget(userId, month, year)
+
         val budgetId = if (budget == null) {
             budgetDao.insertBudget(
                 BudgetEntity(
@@ -54,23 +57,50 @@ class BudgetRepository(
                 )
             )
         } else {
-            budgetDao.updateBudget(budget.copy(income = income))
+            budgetDao.updateBudget(
+                budget.copy(income = income)
+            )
             budget.id
         }
 
+        val savedLimits = mutableListOf<BudgetCategoryEntity>()
+
         limits.forEach { (categoryId, limitAmount) ->
-            val existingLimit = budgetDao.getBudgetCategory(budgetId, categoryId)
-            if (existingLimit == null) {
-                budgetDao.insertBudgetCategory(
-                    BudgetCategoryEntity(
-                        limitAmount = limitAmount,
-                        budgetId = budgetId,
-                        categoryId = categoryId
-                    )
+            val existingLimit = budgetDao.getBudgetCategory(
+                budgetId = budgetId,
+                categoryId = categoryId
+            )
+
+            val savedLimit = if (existingLimit == null) {
+                val newLimit = BudgetCategoryEntity(
+                    limitAmount = limitAmount,
+                    budgetId = budgetId,
+                    categoryId = categoryId
                 )
+
+                val localLimitId = budgetDao.insertBudgetCategory(newLimit)
+
+                newLimit.copy(id = localLimitId)
             } else {
-                budgetDao.updateBudgetCategory(existingLimit.copy(limitAmount = limitAmount))
+                val updatedLimit = existingLimit.copy(
+                    limitAmount = limitAmount
+                )
+
+                budgetDao.updateBudgetCategory(updatedLimit)
+
+                updatedLimit
             }
+
+            savedLimits.add(savedLimit)
+        }
+
+        val finalBudget = budgetDao.getBudget(userId, month, year)
+
+        if (finalBudget != null) {
+            firestoreRepository.saveBudget(
+                budget = finalBudget,
+                limits = savedLimits
+            )
         }
     }
 }

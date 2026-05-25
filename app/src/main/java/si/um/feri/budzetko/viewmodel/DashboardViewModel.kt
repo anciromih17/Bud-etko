@@ -3,6 +3,7 @@ package si.um.feri.budzetko.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.SharingStarted
@@ -11,13 +12,16 @@ import kotlinx.coroutines.flow.stateIn
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.ExpenseRepository
-import si.um.feri.budzetko.data.repository.UserRepository.Companion.DEMO_USER_ID
 
 class DashboardViewModel(
     budgetRepository: BudgetRepository,
     categoryRepository: CategoryRepository,
     expenseRepository: ExpenseRepository
 ) : ViewModel() {
+
+    private val currentUserId: String =
+        FirebaseAuth.getInstance().currentUser?.uid ?: "unknown-user"
+
     private val today = LocalDate.now()
     private val monthStart = today.withDayOfMonth(1)
     private val nextMonthStart = monthStart.plusMonths(1)
@@ -25,15 +29,18 @@ class DashboardViewModel(
     private val endMillis = nextMonthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
 
     val uiState = combine(
-        budgetRepository.observeBudget(DEMO_USER_ID, today.monthValue, today.year),
-        budgetRepository.observeCategoriesWithMonthlyLimit(DEMO_USER_ID, today.monthValue, today.year),
-        categoryRepository.observeCategories(DEMO_USER_ID),
-        expenseRepository.observeExpenses(DEMO_USER_ID)
+        budgetRepository.observeBudget(currentUserId, today.monthValue, today.year),
+        budgetRepository.observeCategoriesWithMonthlyLimit(currentUserId, today.monthValue, today.year),
+        categoryRepository.observeCategories(currentUserId),
+        expenseRepository.observeExpenses(currentUserId)
     ) { budget, categoriesWithLimits, categories, expenses ->
+
         val currentMonthExpenses = expenses.filter { it.date in startMillis..endMillis }
         val categoryById = categories.associateBy { it.id }
         val limitsById = categoriesWithLimits.associateBy { it.id }
-        val spentByCategory = currentMonthExpenses.groupBy { it.categoryId }
+
+        val spentByCategory = currentMonthExpenses
+            .groupBy { it.categoryId }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
 
         val categorySpending = categories.map { category ->
@@ -49,6 +56,7 @@ class DashboardViewModel(
 
         val recentTransactions = expenses.take(4).map { expense ->
             val category = categoryById[expense.categoryId]
+
             DashboardTransaction(
                 expense = expense,
                 categoryName = category?.name ?: "Brez kategorije",
@@ -76,6 +84,7 @@ class DashboardViewModel(
         private val categoryRepository: CategoryRepository,
         private val expenseRepository: ExpenseRepository
     ) : ViewModelProvider.Factory {
+
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
@@ -85,6 +94,7 @@ class DashboardViewModel(
                     expenseRepository = expenseRepository
                 ) as T
             }
+
             throw IllegalArgumentException("Unknown ViewModel class")
         }
     }

@@ -279,7 +279,7 @@ private fun ProfileInfoCard(uiState: UserUiState) {
             ProfileInfoRow(
                 icon = Icons.Outlined.Lock,
                 title = stringResource(R.string.profile_auth),
-                value = stringResource(R.string.profile_auth_placeholder)
+                value = "Firebase Auth connected"
             )
         }
     }
@@ -312,8 +312,7 @@ private fun ProfileSettingsCard() {
             ProfileInfoRow(
                 icon = Icons.Outlined.CloudSync,
                 title = stringResource(R.string.profile_sync),
-                value = stringResource(R.string.profile_sync_placeholder)
-            )
+                "Data synced with Firestore")
         }
     }
 }

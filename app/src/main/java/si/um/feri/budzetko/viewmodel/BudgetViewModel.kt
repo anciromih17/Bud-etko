@@ -12,18 +12,23 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import si.um.feri.budzetko.data.entity.CategoryEntity
+import si.um.feri.budzetko.data.repository.AuthRepository
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.UserRepository
-import si.um.feri.budzetko.data.repository.UserRepository.Companion.DEMO_USER_ID
 import si.um.feri.budzetko.domain.budget.BudgetSuggestionEngine
 
 class BudgetViewModel(
     private val budgetRepository: BudgetRepository,
     private val categoryRepository: CategoryRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authRepository: AuthRepository = AuthRepository()
 ) : ViewModel() {
     private val today = LocalDate.now()
+
+    private val currentUserId: String
+        get() = authRepository.getCurrentUser()?.uid ?: "unknown-user"
+
     private val formState = MutableStateFlow(
         BudgetUiState(
             month = today.monthValue,
@@ -32,7 +37,7 @@ class BudgetViewModel(
     )
 
     val uiState: StateFlow<BudgetUiState> = combine(
-        categoryRepository.observeCategories(DEMO_USER_ID),
+        categoryRepository.observeCategories(currentUserId),
         formState
     ) { categories, form ->
         val formWithCategories = form.copy(categories = categories)
@@ -57,7 +62,16 @@ class BudgetViewModel(
 
     init {
         viewModelScope.launch {
-            userRepository.ensureDemoUser()
+            val firebaseUser = authRepository.getCurrentUser()
+            if (firebaseUser != null) {
+                userRepository.upsertFirebaseUser(
+                    si.um.feri.budzetko.data.entity.UserEntity(
+                        userId = firebaseUser.uid,
+                        email = firebaseUser.email ?: "uporabnik@email.com",
+                        username = firebaseUser.email?.substringBefore("@") ?: "Uporabnik"
+                    )
+                )
+            }
         }
     }
 
@@ -195,10 +209,6 @@ class BudgetViewModel(
                 formState.update { it.copy(errorMessage = "Vnesi veljaven mesečni dohodek.") }
                 return@launch
             }
-            if (state.proposedLimits.isEmpty()) {
-                formState.update { it.copy(errorMessage = "Najprej predlagaj limite.") }
-                return@launch
-            }
             val totalPercent = state.proposedLimits.sumOf { it.percent }
             if (totalPercent > 100) {
                 formState.update {
@@ -209,7 +219,7 @@ class BudgetViewModel(
 
             runCatching {
                 budgetRepository.saveBudgetWithLimits(
-                    userId = DEMO_USER_ID,
+                    userId = currentUserId,
                     month = state.month,
                     year = state.year,
                     income = income,
@@ -228,7 +238,7 @@ class BudgetViewModel(
     private fun loadBudgetForCurrentMonth() {
         viewModelScope.launch {
             val state = formState.value
-            val budget = budgetRepository.getBudget(DEMO_USER_ID, state.month, state.year)
+            val budget = budgetRepository.getBudget(currentUserId, state.month, state.year)
             if (budget == null) {
                 formState.update {
                     it.copy(
@@ -242,7 +252,7 @@ class BudgetViewModel(
             }
 
             val savedLimits = budgetRepository.getBudgetCategoriesForMonth(
-                userId = DEMO_USER_ID,
+                userId = currentUserId,
                 month = state.month,
                 year = state.year
             )

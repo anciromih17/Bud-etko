@@ -3,6 +3,7 @@ package si.um.feri.budzetko.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +17,6 @@ import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.UserRepository
-import si.um.feri.budzetko.data.repository.UserRepository.Companion.DEMO_USER_ID
 import si.um.feri.budzetko.domain.budget.BudgetSuggestionEngine
 
 class CategoryViewModel(
@@ -27,15 +27,18 @@ class CategoryViewModel(
     private val formState = MutableStateFlow(CategoryUiState())
     private val today = LocalDate.now()
 
+    private val currentUserId: String
+        get() = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown-user"
+
     val uiState: StateFlow<CategoryUiState> = combine(
-        categoryRepository.observeCategories(DEMO_USER_ID),
+        categoryRepository.observeCategories(currentUserId),
         budgetRepository.observeBudget(
-            userId = DEMO_USER_ID,
+            userId = currentUserId,
             month = today.monthValue,
             year = today.year
         ),
         budgetRepository.observeCategoriesWithMonthlyLimit(
-            userId = DEMO_USER_ID,
+            userId = currentUserId,
             month = today.monthValue,
             year = today.year
         ),
@@ -58,12 +61,6 @@ class CategoryViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = CategoryUiState()
     )
-
-    init {
-        viewModelScope.launch {
-            userRepository.ensureDemoUser()
-        }
-    }
 
     fun openCreateDialog() {
         formState.update {
@@ -166,7 +163,7 @@ class CategoryViewModel(
             emoji = state.selectedEmoji,
             colorIndex = state.selectedColorIndex,
             budgetRole = state.selectedBudgetRole,
-            userId = DEMO_USER_ID
+            userId = currentUserId
         )
         val categoriesForSuggestion = if (editingCategory == null) {
             state.categories + suggestionCategory
@@ -244,7 +241,7 @@ class CategoryViewModel(
                 if (editingCategory == null) {
                     val newCategoryId = categoryRepository.addCategory(
                         name = name,
-                        userId = DEMO_USER_ID,
+                        userId = currentUserId,
                         emoji = state.selectedEmoji,
                         colorIndex = state.selectedColorIndex,
                         budgetRole = state.selectedBudgetRole
@@ -259,7 +256,7 @@ class CategoryViewModel(
                             emoji = state.selectedEmoji,
                             colorIndex = state.selectedColorIndex,
                             budgetRole = state.selectedBudgetRole,
-                            userId = DEMO_USER_ID
+                            userId = currentUserId
                         )
                         saveCurrentMonthLimitAndRedistribute(
                             categoryId = newCategoryId,
@@ -311,7 +308,7 @@ class CategoryViewModel(
         }
 
         val existingLimits = budgetRepository.getBudgetCategoriesForMonth(
-            userId = DEMO_USER_ID,
+            userId = currentUserId,
             month = today.monthValue,
             year = today.year
         )
@@ -331,7 +328,7 @@ class CategoryViewModel(
             income = income
         )
         budgetRepository.saveBudgetWithLimits(
-            userId = DEMO_USER_ID,
+            userId = currentUserId,
             month = today.monthValue,
             year = today.year,
             income = income,
@@ -376,7 +373,7 @@ class CategoryViewModel(
                 val remainingCategories = uiState.value.categories.filterNot { it.id == category.id }
                 val existingLimits = if (income != null && remainingCategories.isNotEmpty()) {
                     budgetRepository.getBudgetCategoriesForMonth(
-                        userId = DEMO_USER_ID,
+                        userId = currentUserId,
                         month = today.monthValue,
                         year = today.year
                     )
@@ -400,7 +397,7 @@ class CategoryViewModel(
                         income = income
                     )
                     budgetRepository.saveBudgetWithLimits(
-                        userId = DEMO_USER_ID,
+                        userId = currentUserId,
                         month = today.monthValue,
                         year = today.year,
                         income = income,

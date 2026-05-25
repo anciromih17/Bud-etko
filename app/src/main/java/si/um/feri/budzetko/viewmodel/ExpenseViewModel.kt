@@ -3,19 +3,22 @@ package si.um.feri.budzetko.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.data.repository.ExpenseRepository
-import si.um.feri.budzetko.data.repository.UserRepository
 
 class ExpenseViewModel(
     private val repository: ExpenseRepository
 ) : ViewModel() {
 
+    private val currentUserId: String =
+        FirebaseAuth.getInstance().currentUser?.uid ?: "unknown-user"
+
     val expenses = repository
-        .observeExpenses(UserRepository.DEMO_USER_ID)
+        .observeExpenses(currentUserId)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -33,7 +36,7 @@ class ExpenseViewModel(
                 amount = amount,
                 date = date,
                 description = description,
-                userId = UserRepository.DEMO_USER_ID,
+                userId = currentUserId,
                 categoryId = categoryId
             )
         }

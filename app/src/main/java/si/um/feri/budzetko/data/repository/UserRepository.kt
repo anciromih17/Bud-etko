@@ -11,6 +11,10 @@ class UserRepository(
         return userDao.observeUser(userId)
     }
 
+    suspend fun upsertFirebaseUser(user: UserEntity) {
+        userDao.upsertUser(user)
+    }
+
     suspend fun ensureDemoUser() {
         if (userDao.getUser(DEMO_USER_ID) == null) {
             userDao.upsertUser(

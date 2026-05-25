@@ -60,6 +60,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
 import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
@@ -87,6 +88,7 @@ fun SettingsScreen(
     onHomeClick: () -> Unit,
     onProfileClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
+    onLogoutClick: () -> Unit,
     onAddExpenseClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
     onAnalyticsClick: () -> Unit = {},
@@ -102,6 +104,7 @@ fun SettingsScreen(
         onTransactionsClick = onTransactionsClick,
         onAnalyticsClick = onAnalyticsClick,
         onCategorySettingsClick = onCategorySettingsClick,
+        onLogoutClick = onLogoutClick,
         onOpenBudget = budgetViewModel::openBudgetDialog,
         onCloseBudget = budgetViewModel::closeBudgetDialog,
         onIncomeChange = budgetViewModel::onIncomeChange,
@@ -125,6 +128,7 @@ private fun SettingsContent(
     onTransactionsClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
+    onLogoutClick: () -> Unit,
     onOpenBudget: () -> Unit,
     onCloseBudget: () -> Unit,
     onIncomeChange: (String) -> Unit,
@@ -166,7 +170,9 @@ private fun SettingsContent(
                     onCategorySettingsClick = onCategorySettingsClick
                 )
             }
-            item { LogoutButton() }
+            item {
+                LogoutButton(onLogoutClick = onLogoutClick)
+            }
         }
     }
 
@@ -247,7 +253,7 @@ private fun ProfileCard(onClick: () -> Unit) {
                     color = Ink
                 )
                 Text(
-                    text = "ana@budzetko.local",
+                    text = FirebaseAuth.getInstance().currentUser?.email ?: "uporabnik@email.com",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MutedInk
                 )
@@ -325,9 +331,11 @@ private fun SettingsMenuRow(
 }
 
 @Composable
-private fun LogoutButton() {
+private fun LogoutButton(
+    onLogoutClick: () -> Unit
+) {
     Button(
-        onClick = {},
+        onClick = onLogoutClick,
         modifier = Modifier
             .fillMaxWidth()
             .height(58.dp),
@@ -367,7 +375,7 @@ private fun BudgetDialog(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 720.dp),
+                    .heightIn(max = 760.dp),
                 shape = RoundedCornerShape(30.dp),
                 color = CardSurface,
                 border = BorderStroke(1.dp, SoftBorder),
@@ -420,15 +428,15 @@ private fun BudgetDialog(
                     if (uiState.successMessage != null) {
                         item { MessageText(uiState.successMessage, PrimaryAccent) }
                     }
+                    item {
+                        Text(
+                            text = stringResource(R.string.suggested_limits),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Ink
+                        )
+                    }
                     if (uiState.proposedLimits.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = stringResource(R.string.suggested_limits),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Ink
-                            )
-                        }
                         items(uiState.proposedLimits, key = { it.category.id }) { draft ->
                             BudgetLimitCard(
                                 draft = draft,
@@ -437,19 +445,26 @@ private fun BudgetDialog(
                                 onLimitChange = onLimitChange
                             )
                         }
+                    } else {
                         item {
-                            Button(
-                                onClick = onSaveBudget,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
-                            ) {
-                                Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = stringResource(R.string.save), fontWeight = FontWeight.Bold)
-                            }
+                            MessageText(
+                                message = "Ni še predlaganih limitov. Lahko shraniš samo mesečni proračun ali najprej dodaj kategorije.",
+                                color = MutedInk
+                            )
+                        }
+                    }
+                    item {
+                        Button(
+                            onClick = onSaveBudget,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                        ) {
+                            Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = stringResource(R.string.save), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -638,6 +653,7 @@ private fun SettingsContentPreview() {
             onTransactionsClick = {},
             onAnalyticsClick = {},
             onCategorySettingsClick = {},
+            onLogoutClick = {},
             onOpenBudget = {},
             onCloseBudget = {},
             onIncomeChange = {},
