@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,7 @@ import si.um.feri.budzetko.data.repository.AiSummaryRepository
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.ExpenseRepository
+import si.um.feri.budzetko.data.repository.SyncRepository
 import si.um.feri.budzetko.data.repository.UserRepository
 import si.um.feri.budzetko.domain.ai.AiRecommendationService
 import si.um.feri.budzetko.domain.ai.GeminiAiRecommendationClient
@@ -39,6 +41,7 @@ import si.um.feri.budzetko.viewmodel.BudgetViewModel
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.DashboardViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
+import si.um.feri.budzetko.viewmodel.SyncViewModel
 import si.um.feri.budzetko.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
@@ -64,13 +67,26 @@ fun BudzetkoApp() {
     val userRepository = remember { UserRepository(database.userDao()) }
     val expenseRepository = remember { ExpenseRepository(database.expenseDao()) }
     val aiSummaryRepository = remember { AiSummaryRepository(database.aiSummaryDao()) }
+    val syncRepository = remember {
+        SyncRepository(
+            userDao = database.userDao(),
+            categoryDao = database.categoryDao(),
+            expenseDao = database.expenseDao(),
+            budgetDao = database.budgetDao(),
+            aiSummaryDao = database.aiSummaryDao()
+        )
+    }
     val aiRecommendationService = remember {
         AiRecommendationService(
             geminiClient = GeminiAiRecommendationClient(apiKey = BuildConfig.GEMINI_API_KEY)
         )
     }
 
-    val authViewModel: AuthViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel(
+        factory = AuthViewModel.Factory(
+            userRepository = userRepository
+        )
+    )
     val currentUser by authViewModel.currentUser.collectAsState()
 
     if (currentUser == null) {
@@ -91,8 +107,8 @@ fun BudzetkoApp() {
     var transactionsYearFilter by remember { mutableStateOf<Int?>(null) }
 
     fun openTransactions(
-        month: Int? = selectedAppMonth.monthValue,
-        year: Int? = selectedAppMonth.year
+        month: Int? = transactionsMonthFilter,
+        year: Int? = transactionsYearFilter
     ) {
         transactionsMonthFilter = month
         transactionsYearFilter = year
@@ -100,6 +116,19 @@ fun BudzetkoApp() {
             selectedAppMonth = YearMonth.of(year, month)
         }
         currentScreen = BudzetkoScreen.Transactions
+    }
+
+    fun setAnalyticsMonth(month: Int, year: Int) {
+        val selectedMonth = YearMonth.of(year, month)
+        selectedAppMonth = selectedMonth
+
+        if (selectedMonth == YearMonth.now()) {
+            transactionsMonthFilter = null
+            transactionsYearFilter = null
+        } else {
+            transactionsMonthFilter = month
+            transactionsYearFilter = year
+        }
     }
 
     val categoryViewModel: CategoryViewModel = viewModel(
@@ -161,6 +190,15 @@ fun BudzetkoApp() {
         factory = ExpenseViewModel.Factory(repository = expenseRepository)
     )
 
+    val syncViewModel: SyncViewModel = viewModel(
+        key = "sync_$userId",
+        factory = SyncViewModel.Factory(syncRepository)
+    )
+
+    LaunchedEffect(userId) {
+        syncViewModel.syncOnStartup(userId)
+    }
+
     when (currentScreen) {
         BudzetkoScreen.Dashboard -> DashboardScreen(
             viewModel = dashboardViewModel,
@@ -190,9 +228,7 @@ fun BudzetkoApp() {
             selectedMonth = selectedAppMonth.monthValue,
             selectedYear = selectedAppMonth.year,
             onMonthChange = { month, year ->
-                selectedAppMonth = YearMonth.of(year, month)
-                transactionsMonthFilter = month
-                transactionsYearFilter = year
+                setAnalyticsMonth(month, year)
             }
         )
 
@@ -268,6 +304,7 @@ fun BudzetkoApp() {
 
         BudzetkoScreen.Profile -> ProfileScreen(
             viewModel = userViewModel,
+            syncViewModel = syncViewModel,
             onBackClick = { currentScreen = BudzetkoScreen.Dashboard },
             onHomeClick = { currentScreen = BudzetkoScreen.Dashboard },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics },

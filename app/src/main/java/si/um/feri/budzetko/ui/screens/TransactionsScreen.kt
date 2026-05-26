@@ -118,7 +118,7 @@ fun TransactionsScreen(
     var selectedMonth by remember { mutableStateOf<Int?>(selectedMonthFilter) }
     var selectedYear by remember { mutableStateOf<Int?>(selectedYearFilter) }
     var sortMode by remember { mutableStateOf(ExpenseSortMode.NEWEST) }
-    var areFiltersExpanded by remember { mutableStateOf(initialMonth != null || initialYear != null) }
+    var areFiltersExpanded by remember { mutableStateOf(false) }
     var expensePendingDelete by remember { mutableStateOf<ExpenseEntity?>(null) }
 
     LaunchedEffect(selectedMonthFilter, selectedYearFilter) {

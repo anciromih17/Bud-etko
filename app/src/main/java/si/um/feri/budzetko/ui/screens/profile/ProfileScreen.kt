@@ -3,6 +3,7 @@ package si.um.feri.budzetko.ui.screens.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -53,6 +56,9 @@ import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
 import si.um.feri.budzetko.ui.theme.BudzetkoBackground
 import si.um.feri.budzetko.ui.theme.BudzetkoBorder
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.viewmodel.SyncStatusUi
+import si.um.feri.budzetko.viewmodel.SyncUiState
+import si.um.feri.budzetko.viewmodel.SyncViewModel
 import si.um.feri.budzetko.viewmodel.UserUiState
 import si.um.feri.budzetko.viewmodel.UserViewModel
 
@@ -67,6 +73,7 @@ private val MutedInk = Color(0xFF6D6774)
 @Composable
 fun ProfileScreen(
     viewModel: UserViewModel,
+    syncViewModel: SyncViewModel,
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
     onAnalyticsClick: () -> Unit = {},
@@ -74,9 +81,16 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val syncUiState by syncViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        syncViewModel.refreshLocalSyncStatus()
+    }
 
     ProfileContent(
         uiState = uiState,
+        syncUiState = syncUiState,
+        onSyncClick = syncViewModel::syncNow,
         onBackClick = onBackClick,
         onHomeClick = onHomeClick,
         onAnalyticsClick = onAnalyticsClick,
@@ -88,6 +102,8 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     uiState: UserUiState,
+    syncUiState: SyncUiState,
+    onSyncClick: () -> Unit,
     onBackClick: () -> Unit,
     onHomeClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
@@ -123,7 +139,10 @@ private fun ProfileContent(
                 ProfileInfoCard(uiState = uiState)
             }
             item {
-                ProfileSettingsCard()
+                ProfileSettingsCard(
+                    syncUiState = syncUiState,
+                    onSyncClick = onSyncClick
+                )
             }
         }
     }
@@ -286,7 +305,10 @@ private fun ProfileInfoCard(uiState: UserUiState) {
 }
 
 @Composable
-private fun ProfileSettingsCard() {
+private fun ProfileSettingsCard(
+    syncUiState: SyncUiState,
+    onSyncClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -312,7 +334,18 @@ private fun ProfileSettingsCard() {
             ProfileInfoRow(
                 icon = Icons.Outlined.CloudSync,
                 title = stringResource(R.string.profile_sync),
-                "Data synced with Firestore")
+                value = syncUiState.message,
+                onClick = onSyncClick,
+                trailing = {
+                    if (syncUiState.status == SyncStatusUi.SYNCING) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = PrimaryAccent
+                        )
+                    }
+                }
+            )
         }
     }
 }
@@ -321,10 +354,14 @@ private fun ProfileSettingsCard() {
 private fun ProfileInfoRow(
     icon: ImageVector,
     title: String,
-    value: String
+    value: String,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick)),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -362,6 +399,7 @@ private fun ProfileInfoRow(
                 color = MutedInk
             )
         }
+        trailing?.invoke()
     }
 }
 
@@ -371,6 +409,8 @@ private fun ProfileContentPreview() {
     BudzetkoTheme {
         ProfileContent(
             uiState = UserUiState(),
+            syncUiState = SyncUiState(),
+            onSyncClick = {},
             onBackClick = {},
             onHomeClick = {},
             onAnalyticsClick = {},

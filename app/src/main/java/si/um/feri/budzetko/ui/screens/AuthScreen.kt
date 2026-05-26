@@ -38,6 +38,7 @@ fun AuthScreen(
 
     val currentUser by authViewModel.currentUser.collectAsState()
     val error by authViewModel.error.collectAsState()
+    val message by authViewModel.message.collectAsState()
     val isLoading by authViewModel.isLoading.collectAsState()
 
     var mode by remember {
@@ -155,20 +156,15 @@ fun AuthScreen(
 
                         AuthMode.REGISTER -> {
 
-                            if (
-                                email.isNotBlank() &&
-                                username.isNotBlank() &&
-                                password.length >= 6
-                            ) {
-
-                                authViewModel.register(
-                                    email = email,
-                                    password = password
-                                )
-                            }
+                            authViewModel.register(
+                                email = email,
+                                username = username,
+                                password = password
+                            )
                         }
 
                         AuthMode.RESET -> {
+                            authViewModel.resetPassword(email)
                         }
                     }
                 },
@@ -255,6 +251,17 @@ fun AuthScreen(
                 Text(
                     text = it,
                     color = Color.Red,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            message?.let {
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = it,
+                    color = Color(0xFF167C72),
                     style = MaterialTheme.typography.bodySmall
                 )
             }

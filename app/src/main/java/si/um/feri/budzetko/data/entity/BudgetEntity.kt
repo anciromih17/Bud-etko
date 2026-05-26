@@ -27,6 +27,10 @@ data class BudgetEntity(
     val month: Int,
     val year: Int,
     val income: Double,
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: SyncStatus = SyncStatus.PENDING,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "user_id")
     val userId: String
 )

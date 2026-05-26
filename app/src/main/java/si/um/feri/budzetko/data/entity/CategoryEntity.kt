@@ -30,6 +30,10 @@ data class CategoryEntity(
     val colorIndex: Int = 0,
     @ColumnInfo(name = "budget_role")
     val budgetRole: CategoryBudgetRole = CategoryBudgetRole.OTHER,
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: SyncStatus = SyncStatus.PENDING,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "user_id")
     val userId: String
 )

@@ -68,9 +68,9 @@ import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.theme.BudzetkoBackground
 import si.um.feri.budzetko.ui.theme.BudzetkoInk
-import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoSurface
+import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
 
@@ -78,7 +78,6 @@ private val ScreenBackground = BudzetkoBackground
 private val CardSurface = BudzetkoSurface
 private val PrimaryAccent = BudzetkoPurple
 private val SoftAccent = Color(0xFFF4F0FF)
-private val LimeAccent = BudzetkoLime
 private val Ink = BudzetkoInk
 private val MutedInk = Color(0xFF71706A)
 private val Danger = Color(0xFFB3261E)
@@ -471,20 +470,43 @@ private fun CategoryTile(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val categoryColor = budzetkoCategoryColor(
+        categoryId = category.id,
+        colorIndex = category.colorIndex,
+        hasEmoji = !category.emoji.isNullOrBlank()
+    )
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(82.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
-        color = if (isSelected) LimeAccent.copy(alpha = 0.58f) else SoftAccent
+        color = if (isSelected) categoryColor.copy(alpha = 0.58f) else SoftAccent
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = category.emoji ?: "●", style = MaterialTheme.typography.titleLarge)
+            if (category.emoji.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(categoryColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(9.dp)
+                            .clip(CircleShape)
+                            .background(Ink)
+                    )
+                }
+            } else {
+                Text(text = category.emoji, style = MaterialTheme.typography.titleLarge)
+            }
             Text(text = category.name, style = MaterialTheme.typography.bodySmall, color = Ink)
         }
     }

@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import si.um.feri.budzetko.data.dao.CategoryDao
 import si.um.feri.budzetko.data.entity.CategoryBudgetRole
 import si.um.feri.budzetko.data.entity.CategoryEntity
+import si.um.feri.budzetko.data.entity.SyncStatus
 
 class CategoryRepository(
     private val categoryDao: CategoryDao,
@@ -28,13 +29,21 @@ class CategoryRepository(
             emoji = emoji,
             colorIndex = colorIndex,
             budgetRole = budgetRole,
+            syncStatus = SyncStatus.PENDING,
+            updatedAt = System.currentTimeMillis(),
             userId = userId
         )
 
         val localId = categoryDao.insertCategory(category)
         val categoryWithId = category.copy(id = localId)
 
-        firestoreRepository.saveCategory(categoryWithId)
+        runCatching {
+            firestoreRepository.saveCategory(categoryWithId)
+        }.onSuccess {
+            categoryDao.updateCategory(categoryWithId.copy(syncStatus = SyncStatus.SYNCED))
+        }.onFailure {
+            categoryDao.updateCategory(categoryWithId.copy(syncStatus = SyncStatus.FAILED))
+        }
 
         return localId
     }
@@ -53,15 +62,25 @@ class CategoryRepository(
             name = cleanName,
             emoji = emoji,
             colorIndex = colorIndex,
-            budgetRole = budgetRole
+            budgetRole = budgetRole,
+            syncStatus = SyncStatus.PENDING,
+            updatedAt = System.currentTimeMillis()
         )
 
         categoryDao.updateCategory(updatedCategory)
-        firestoreRepository.saveCategory(updatedCategory)
+        runCatching {
+            firestoreRepository.saveCategory(updatedCategory)
+        }.onSuccess {
+            categoryDao.updateCategory(updatedCategory.copy(syncStatus = SyncStatus.SYNCED))
+        }.onFailure {
+            categoryDao.updateCategory(updatedCategory.copy(syncStatus = SyncStatus.FAILED))
+        }
     }
 
     suspend fun deleteCategory(category: CategoryEntity) {
         categoryDao.deleteCategory(category)
-        firestoreRepository.deleteCategory(category)
+        runCatching {
+            firestoreRepository.deleteCategory(category)
+        }
     }
 }
