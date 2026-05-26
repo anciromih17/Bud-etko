@@ -5,7 +5,8 @@ import si.um.feri.budzetko.data.dao.UserDao
 import si.um.feri.budzetko.data.entity.UserEntity
 
 class UserRepository(
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
 ) {
     fun observeUser(userId: String): Flow<UserEntity?> {
         return userDao.observeUser(userId)
@@ -13,6 +14,9 @@ class UserRepository(
 
     suspend fun upsertFirebaseUser(user: UserEntity) {
         userDao.upsertUser(user)
+        runCatching {
+            firestoreRepository.saveUser(user)
+        }
     }
 
     suspend fun ensureDemoUser() {

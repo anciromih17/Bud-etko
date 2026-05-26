@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import si.um.feri.budzetko.data.dao.BudgetDao
 import si.um.feri.budzetko.data.entity.BudgetCategoryEntity
 import si.um.feri.budzetko.data.entity.BudgetEntity
+import si.um.feri.budzetko.data.entity.SyncStatus
 import si.um.feri.budzetko.data.model.BudgetCategoryProgress
 import si.um.feri.budzetko.data.model.CategoryWithMonthlyLimit
 
@@ -82,12 +83,18 @@ class BudgetRepository(
                     month = month,
                     year = year,
                     income = income,
+                    syncStatus = SyncStatus.PENDING,
+                    updatedAt = System.currentTimeMillis(),
                     userId = userId
                 )
             )
         } else {
             budgetDao.updateBudget(
-                budget.copy(income = income)
+                budget.copy(
+                    income = income,
+                    syncStatus = SyncStatus.PENDING,
+                    updatedAt = System.currentTimeMillis()
+                )
             )
             budget.id
         }
@@ -103,6 +110,8 @@ class BudgetRepository(
             val savedLimit = if (existingLimit == null) {
                 val newLimit = BudgetCategoryEntity(
                     limitAmount = limitAmount,
+                    syncStatus = SyncStatus.PENDING,
+                    updatedAt = System.currentTimeMillis(),
                     budgetId = budgetId,
                     categoryId = categoryId
                 )
@@ -112,7 +121,9 @@ class BudgetRepository(
                 newLimit.copy(id = localLimitId)
             } else {
                 val updatedLimit = existingLimit.copy(
-                    limitAmount = limitAmount
+                    limitAmount = limitAmount,
+                    syncStatus = SyncStatus.PENDING,
+                    updatedAt = System.currentTimeMillis()
                 )
 
                 budgetDao.updateBudgetCategory(updatedLimit)
@@ -126,10 +137,22 @@ class BudgetRepository(
         val finalBudget = budgetDao.getBudget(userId, month, year)
 
         if (finalBudget != null) {
-            firestoreRepository.saveBudget(
-                budget = finalBudget,
-                limits = savedLimits
-            )
+            runCatching {
+                firestoreRepository.saveBudget(
+                    budget = finalBudget,
+                    limits = savedLimits
+                )
+            }.onSuccess {
+                budgetDao.updateBudget(finalBudget.copy(syncStatus = SyncStatus.SYNCED))
+                savedLimits.forEach { limit ->
+                    budgetDao.updateBudgetCategory(limit.copy(syncStatus = SyncStatus.SYNCED))
+                }
+            }.onFailure {
+                budgetDao.updateBudget(finalBudget.copy(syncStatus = SyncStatus.FAILED))
+                savedLimits.forEach { limit ->
+                    budgetDao.updateBudgetCategory(limit.copy(syncStatus = SyncStatus.FAILED))
+                }
+            }
         }
     }
 }

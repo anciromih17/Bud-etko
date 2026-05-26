@@ -28,8 +28,12 @@ data class AiSummaryEntity(
     val year: Int,
     val summary: String,
     val source: AiSummarySource = AiSummarySource.FALLBACK,
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: SyncStatus = SyncStatus.PENDING,
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "user_id")
     val userId: String
 )

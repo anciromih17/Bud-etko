@@ -9,6 +9,7 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 import si.um.feri.budzetko.data.entity.BudgetCategoryEntity
 import si.um.feri.budzetko.data.entity.BudgetEntity
+import si.um.feri.budzetko.data.entity.SyncStatus
 import si.um.feri.budzetko.data.model.BudgetCategoryProgress
 import si.um.feri.budzetko.data.model.CategoryWithMonthlyLimit
 
@@ -50,14 +51,32 @@ interface BudgetDao {
     )
     suspend fun getBudget(userId: String, month: Int, year: Int): BudgetEntity?
 
+    @Query("SELECT COUNT(*) FROM budgets WHERE user_id = :userId AND sync_status IN (:statuses)")
+    suspend fun countBudgetsBySyncStatus(userId: String, statuses: List<SyncStatus>): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM budget_categories
+        INNER JOIN budgets ON budgets.id = budget_categories.budget_id
+        WHERE budgets.user_id = :userId AND budget_categories.sync_status IN (:statuses)
+        """
+    )
+    suspend fun countBudgetCategoriesBySyncStatus(userId: String, statuses: List<SyncStatus>): Int
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBudget(budget: BudgetEntity): Long
+
+    @Upsert
+    suspend fun upsertBudget(budget: BudgetEntity)
 
     @Update
     suspend fun updateBudget(budget: BudgetEntity)
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBudgetCategory(budgetCategory: BudgetCategoryEntity): Long
+
+    @Upsert
+    suspend fun upsertBudgetCategory(budgetCategory: BudgetCategoryEntity)
 
     @Update
     suspend fun updateBudgetCategory(budgetCategory: BudgetCategoryEntity)
@@ -102,6 +121,47 @@ interface BudgetDao {
 
     @Query("DELETE FROM budget_categories WHERE id = :budgetCategoryId")
     suspend fun deleteBudgetCategory(budgetCategoryId: Long)
+
+    @Query(
+        """
+        DELETE FROM budget_categories
+        WHERE budget_id = :budgetId
+            AND sync_status = 'SYNCED'
+            AND category_id NOT IN (:cloudCategoryIds)
+        """
+    )
+    suspend fun deleteSyncedBudgetCategoriesMissingFromCloud(
+        budgetId: Long,
+        cloudCategoryIds: List<Long>
+    ): Int
+
+    @Query(
+        """
+        DELETE FROM budget_categories
+        WHERE budget_id = :budgetId
+            AND sync_status = 'SYNCED'
+        """
+    )
+    suspend fun deleteAllSyncedBudgetCategoriesMissingFromCloud(budgetId: Long): Int
+
+    @Query(
+        """
+        DELETE FROM budgets
+        WHERE user_id = :userId
+            AND sync_status = 'SYNCED'
+            AND id NOT IN (:cloudIds)
+        """
+    )
+    suspend fun deleteSyncedBudgetsMissingFromCloud(userId: String, cloudIds: List<Long>): Int
+
+    @Query(
+        """
+        DELETE FROM budgets
+        WHERE user_id = :userId
+            AND sync_status = 'SYNCED'
+        """
+    )
+    suspend fun deleteAllSyncedBudgetsMissingFromCloud(userId: String): Int
 
     @Query(
         """

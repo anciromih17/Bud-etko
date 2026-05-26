@@ -33,6 +33,10 @@ data class BudgetCategoryEntity(
     val id: Long = 0,
     @ColumnInfo(name = "limit_amount")
     val limitAmount: Double,
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: SyncStatus = SyncStatus.PENDING,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "budget_id")
     val budgetId: Long,
     @ColumnInfo(name = "category_id")

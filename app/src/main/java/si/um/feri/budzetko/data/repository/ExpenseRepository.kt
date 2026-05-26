@@ -32,13 +32,9 @@ class ExpenseRepository(
         )
 
         val localId = expenseDao.insertExpense(expense)
+        val localExpense = expense.copy(id = localId)
 
-        firestoreRepository.saveExpense(
-            expense.copy(
-                id = localId,
-                syncStatus = SyncStatus.SYNCED
-            )
-        )
+        syncExpense(localExpense)
 
         return localId
     }
@@ -51,13 +47,23 @@ class ExpenseRepository(
 
         expenseDao.updateExpense(updatedExpense)
 
-        firestoreRepository.saveExpense(
-            updatedExpense.copy(syncStatus = SyncStatus.SYNCED)
-        )
+        syncExpense(updatedExpense)
     }
 
     suspend fun deleteExpense(expense: ExpenseEntity) {
         expenseDao.deleteExpense(expense)
-        firestoreRepository.deleteExpense(expense)
+        runCatching {
+            firestoreRepository.deleteExpense(expense)
+        }
+    }
+
+    private suspend fun syncExpense(expense: ExpenseEntity) {
+        runCatching {
+            firestoreRepository.saveExpense(expense.copy(syncStatus = SyncStatus.SYNCED))
+        }.onSuccess {
+            expenseDao.updateExpense(expense.copy(syncStatus = SyncStatus.SYNCED))
+        }.onFailure {
+            expenseDao.updateExpense(expense.copy(syncStatus = SyncStatus.FAILED))
+        }
     }
 }
