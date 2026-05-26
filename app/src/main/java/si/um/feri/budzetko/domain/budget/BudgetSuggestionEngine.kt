@@ -24,6 +24,53 @@ object BudgetSuggestionEngine {
         }
     }
 
+    fun applyTrendAdjustments(
+        drafts: List<BudgetLimitDraft>,
+        trendStats: Map<Long, BudgetTrendStat>,
+        income: Double
+    ): List<BudgetLimitDraft> {
+        if (drafts.isEmpty() || trendStats.isEmpty() || income <= 0.0) return drafts
+
+        val adjustedAmounts = drafts.associate { draft ->
+            val stat = trendStats[draft.category.id]
+            val multiplier = when {
+                stat == null || stat.monthCount == 0 -> 1.0
+                stat.averageUsageRatio > 1.10 -> 1.10
+                stat.averageUsageRatio < 0.70 -> 0.90
+                else -> 1.0
+            }
+            val note = when {
+                stat == null || stat.monthCount == 0 -> null
+                stat.averageUsageRatio > 1.10 -> "Povečano zaradi porabe v preteklih mesecih."
+                stat.averageUsageRatio < 0.70 -> "Znižano zaradi nižje porabe v preteklih mesecih."
+                else -> "Podobno kot običajno glede na pretekle mesece."
+            }
+            draft.category.id to TrendAdjustedAmount(
+                amount = draft.limitAmount * multiplier,
+                note = note
+            )
+        }
+
+        val totalAdjusted = adjustedAmounts.values.sumOf { it.amount }
+        if (totalAdjusted <= 0.0) return drafts
+
+        var usedAmount = 0.0
+        return drafts.mapIndexed { index, draft ->
+            val adjusted = adjustedAmounts.getValue(draft.category.id)
+            val normalizedAmount = if (index == drafts.lastIndex) {
+                income - usedAmount
+            } else {
+                adjusted.amount / totalAdjusted * income
+            }.coerceAtLeast(0.0)
+            usedAmount += normalizedAmount
+            draft.copy(
+                percent = percentOf(normalizedAmount, income),
+                limitAmount = normalizedAmount,
+                trendNote = adjusted.note
+            )
+        }
+    }
+
     fun redistributeAfterManualChange(
         drafts: List<BudgetLimitDraft>,
         baselinePercents: Map<Long, Int>,
@@ -289,3 +336,14 @@ object BudgetSuggestionEngine {
         }
     }
 }
+
+data class BudgetTrendStat(
+    val categoryId: Long,
+    val averageUsageRatio: Double,
+    val monthCount: Int
+)
+
+private data class TrendAdjustedAmount(
+    val amount: Double,
+    val note: String?
+)

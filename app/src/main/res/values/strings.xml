@@ -10,6 +10,9 @@
     <string name="delete_category">Izbriši kategorijo</string>
     <string name="delete_category_title">Izbriši kategorijo?</string>
     <string name="delete_category_message">Ali si prepričana, da želiš izbrisati kategorijo “%1$s”? Preostali limiti v trenutnem mesečnem proračunu se bodo samodejno prerazporedili.</string>
+    <string name="delete_expense_title">Izbriši strošek?</string>
+    <string name="delete_expense_message">Ali si prepričana, da želiš izbrisati strošek “%1$s”? Tega dejanja ni mogoče razveljaviti.</string>
+    <string name="expense_without_description">Brez opisa</string>
     <string name="delete">Izbriši</string>
     <string name="empty_categories_title">Ni še kategorij</string>
     <string name="empty_categories_message">Dodaj prve kategorije, na primer Hrana, Stroški, Prevoz ali Potovanje.</string>

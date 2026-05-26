@@ -1,5 +1,10 @@
 package si.um.feri.budzetko.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,8 +28,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.FilterChip
@@ -34,7 +43,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,11 +56,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
@@ -89,7 +102,9 @@ fun TransactionsScreen(
     onEditExpenseClick: (ExpenseEntity) -> Unit,
     onProfileClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    initialMonth: Int? = null,
+    initialYear: Int? = null
 ) {
     val expenses by expenseViewModel.expenses.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
@@ -97,7 +112,21 @@ fun TransactionsScreen(
     val categoriesById = categories.associateBy { it.id }
     var search by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
+    var selectedMonth by remember { mutableStateOf<Int?>(initialMonth) }
+    var selectedYear by remember { mutableStateOf<Int?>(initialYear) }
     var sortMode by remember { mutableStateOf(ExpenseSortMode.NEWEST) }
+    var areFiltersExpanded by remember { mutableStateOf(initialMonth != null || initialYear != null) }
+    var expensePendingDelete by remember { mutableStateOf<ExpenseEntity?>(null) }
+
+    LaunchedEffect(initialMonth, initialYear) {
+        selectedMonth = initialMonth
+        selectedYear = initialYear
+    }
+
+    val availableMonths = expenses
+        .map { it.monthYear() }
+        .distinct()
+        .sortedWith(compareByDescending<MonthYear> { it.year }.thenByDescending { it.month })
 
     val filteredExpenses = expenses.filter { expense ->
         val category = categoriesById[expense.categoryId]
@@ -105,7 +134,9 @@ fun TransactionsScreen(
             expense.description.contains(search, ignoreCase = true) ||
             category?.name?.contains(search, ignoreCase = true) == true
         val matchesCategory = selectedCategoryId == null || expense.categoryId == selectedCategoryId
-        matchesSearch && matchesCategory
+        val matchesMonth = selectedMonth == null ||
+            (expense.monthYear().month == selectedMonth && expense.monthYear().year == selectedYear)
+        matchesSearch && matchesCategory && matchesMonth
     }.sortedWith(sortMode.comparator())
     val totalSpent = filteredExpenses.sumOf { it.amount }
     val groupedExpenses = filteredExpenses.groupBy { it.dateLabel() }
@@ -128,26 +159,36 @@ fun TransactionsScreen(
                 .background(ScreenBackground)
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 22.dp, top = 30.dp, end = 22.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { TransactionsHeader(onProfileClick = onProfileClick) }
             item { TotalSpentCard(totalSpent = totalSpent) }
             item {
-                SearchRow(
+                TransactionControls(
                     search = search,
                     sortMode = sortMode,
-                    onSearchChange = { search = it },
-                    onSortClick = { sortMode = sortMode.next() }
-                )
-            }
-            item {
-                CategoryFilterRow(
+                    areFiltersExpanded = areFiltersExpanded,
+                    availableMonths = availableMonths,
                     categories = categories,
+                    selectedMonth = selectedMonth,
+                    selectedYear = selectedYear,
                     selectedCategoryId = selectedCategoryId,
+                    selectedCategory = selectedCategoryId?.let { categoriesById[it] },
+                    onSearchChange = { search = it },
+                    onSortClick = { sortMode = sortMode.next() },
+                    onFilterClick = { areFiltersExpanded = !areFiltersExpanded },
+                    onClearMonth = {
+                        selectedMonth = null
+                        selectedYear = null
+                    },
+                    onClearCategory = { selectedCategoryId = null },
+                    onMonthSelected = { monthYear ->
+                        selectedMonth = monthYear?.month
+                        selectedYear = monthYear?.year
+                    },
                     onCategorySelected = { selectedCategoryId = it }
                 )
             }
-
             if (filteredExpenses.isEmpty()) {
                 item { EmptyTransactionsCard() }
             } else {
@@ -166,12 +207,25 @@ fun TransactionsScreen(
                             expenses = dateExpenses,
                             categoriesById = categoriesById,
                             onEditExpenseClick = onEditExpenseClick,
-                            onDeleteExpenseClick = expenseViewModel::deleteExpense
+                            onDeleteExpenseClick = { expensePendingDelete = it }
                         )
                     }
                 }
             }
         }
+    }
+
+    expensePendingDelete?.let { expense ->
+        DeleteExpenseDialog(
+            expenseDescription = expense.description.lineSequence().firstOrNull().orEmpty(),
+            onConfirm = {
+                expenseViewModel.deleteExpense(expense)
+                expensePendingDelete = null
+            },
+            onDismiss = {
+                expensePendingDelete = null
+            }
+        )
     }
 }
 
@@ -236,36 +290,224 @@ private fun TotalSpentCard(totalSpent: Double) {
 }
 
 @Composable
+private fun TransactionControls(
+    search: String,
+    sortMode: ExpenseSortMode,
+    areFiltersExpanded: Boolean,
+    availableMonths: List<MonthYear>,
+    categories: List<CategoryEntity>,
+    selectedMonth: Int?,
+    selectedYear: Int?,
+    selectedCategoryId: Long?,
+    selectedCategory: CategoryEntity?,
+    onSearchChange: (String) -> Unit,
+    onSortClick: () -> Unit,
+    onFilterClick: () -> Unit,
+    onClearMonth: () -> Unit,
+    onClearCategory: () -> Unit,
+    onMonthSelected: (MonthYear?) -> Unit,
+    onCategorySelected: (Long?) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SearchRow(
+            search = search,
+            sortMode = sortMode,
+            areFiltersExpanded = areFiltersExpanded,
+            onSearchChange = onSearchChange,
+            onSortClick = onSortClick,
+            onFilterClick = onFilterClick
+        )
+        ActiveFilterRow(
+            selectedMonth = selectedMonth,
+            selectedYear = selectedYear,
+            selectedCategory = selectedCategory,
+            sortMode = sortMode,
+            onClearMonth = onClearMonth,
+            onClearCategory = onClearCategory
+        )
+        AnimatedVisibility(
+            visible = areFiltersExpanded,
+            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+        ) {
+            FilterPanel(
+                availableMonths = availableMonths,
+                categories = categories,
+                selectedMonth = selectedMonth,
+                selectedYear = selectedYear,
+                selectedCategoryId = selectedCategoryId,
+                onMonthSelected = onMonthSelected,
+                onCategorySelected = onCategorySelected
+            )
+        }
+    }
+}
+
+@Composable
 private fun SearchRow(
     search: String,
     sortMode: ExpenseSortMode,
+    areFiltersExpanded: Boolean,
     onSearchChange: (String) -> Unit,
-    onSortClick: () -> Unit
+    onSortClick: () -> Unit,
+    onFilterClick: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(34.dp), tint = Ink)
-            Spacer(modifier = Modifier.width(10.dp))
-            OutlinedTextField(
-                value = search,
-                onValueChange = onSearchChange,
-                placeholder = { Text("Išči...") },
-                singleLine = true,
-                shape = RoundedCornerShape(22.dp),
-                modifier = Modifier.weight(1f)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(32.dp), tint = Ink)
+        Spacer(modifier = Modifier.width(10.dp))
+        OutlinedTextField(
+            value = search,
+            onValueChange = onSearchChange,
+            placeholder = { Text("Išči...") },
+            singleLine = true,
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        IconButton(onClick = onFilterClick, modifier = Modifier.size(40.dp)) {
+            Icon(
+                Icons.Outlined.FilterList,
+                contentDescription = "Filtri",
+                modifier = Modifier.size(26.dp),
+                tint = if (areFiltersExpanded) PrimaryAccent else Ink
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            IconButton(onClick = onSortClick, modifier = Modifier.size(42.dp)) {
-                Icon(Icons.Outlined.SwapVert, contentDescription = "Razvrsti", modifier = Modifier.size(30.dp), tint = Ink)
+        }
+        IconButton(onClick = onSortClick, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Outlined.SwapVert, contentDescription = "Razvrsti: ${sortMode.label}", modifier = Modifier.size(26.dp), tint = Ink)
+        }
+    }
+}
+
+@Composable
+private fun ActiveFilterRow(
+    selectedMonth: Int?,
+    selectedYear: Int?,
+    selectedCategory: CategoryEntity?,
+    sortMode: ExpenseSortMode,
+    onClearMonth: () -> Unit,
+    onClearCategory: () -> Unit
+) {
+    val hasMonth = selectedMonth != null && selectedYear != null
+    val hasCategory = selectedCategory != null
+    if (!hasMonth && !hasCategory && sortMode == ExpenseSortMode.NEWEST) return
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp)
+    ) {
+        if (hasMonth) {
+            item {
+                CompactInfoChip(
+                    text = "${monthName(selectedMonth!!)} $selectedYear",
+                    onClick = onClearMonth
+                )
             }
         }
+        if (hasCategory) {
+            item {
+                CompactInfoChip(
+                    text = selectedCategory!!.name,
+                    color = transactionIconBackground(selectedCategory),
+                    onClick = onClearCategory
+                )
+            }
+        }
+        if (sortMode != ExpenseSortMode.NEWEST) {
+            item {
+                CompactInfoChip(text = sortMode.label)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactInfoChip(
+    text: String,
+    color: Color = PrimaryAccent.copy(alpha = 0.28f),
+    onClick: (() -> Unit)? = null
+) {
+    Surface(
+        modifier = if (onClick == null) Modifier else Modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = color.copy(alpha = 0.65f)
+    ) {
         Text(
-            text = "Razvrščeno: ${sortMode.label}",
-            modifier = Modifier.padding(start = 44.dp),
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = MutedInk
+            fontWeight = FontWeight.ExtraBold,
+            color = Ink
         )
+    }
+}
+
+@Composable
+private fun FilterPanel(
+    availableMonths: List<MonthYear>,
+    categories: List<CategoryEntity>,
+    selectedMonth: Int?,
+    selectedYear: Int?,
+    selectedCategoryId: Long?,
+    onMonthSelected: (MonthYear?) -> Unit,
+    onCategorySelected: (Long?) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        color = CardSurface
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            MonthFilterRow(
+                availableMonths = availableMonths,
+                selectedMonth = selectedMonth,
+                selectedYear = selectedYear,
+                onMonthSelected = onMonthSelected
+            )
+            CategoryFilterRow(
+                categories = categories,
+                selectedCategoryId = selectedCategoryId,
+                onCategorySelected = onCategorySelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun MonthFilterRow(
+    availableMonths: List<MonthYear>,
+    selectedMonth: Int?,
+    selectedYear: Int?,
+    onMonthSelected: (MonthYear?) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedMonth == null,
+                onClick = { onMonthSelected(null) },
+                label = { Text(text = "Vsi meseci") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = Ink,
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+        items(availableMonths, key = { "${it.year}-${it.month}" }) { monthYear ->
+            FilterChip(
+                selected = selectedMonth == monthYear.month && selectedYear == monthYear.year,
+                onClick = { onMonthSelected(monthYear) },
+                label = { Text(text = "${monthName(monthYear.month)} ${monthYear.year}") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PrimaryAccent.copy(alpha = 0.18f),
+                    selectedLabelColor = Ink
+                )
+            )
+        }
     }
 }
 
@@ -411,11 +653,85 @@ private fun EmptyTransactionsCard() {
     }
 }
 
+@Composable
+private fun DeleteExpenseDialog(
+    expenseDescription: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardSurface,
+        title = {
+            Text(
+                text = stringResource(R.string.delete_expense_title),
+                fontWeight = FontWeight.ExtraBold,
+                color = Ink
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(
+                    R.string.delete_expense_message,
+                    expenseDescription.ifBlank { stringResource(R.string.expense_without_description) }
+                ),
+                color = MutedInk
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Danger,
+                    contentColor = Color.White
+                )
+            ) {
+                Text(text = stringResource(R.string.delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
 private fun ExpenseEntity.dateLabel(): String {
     return Instant.ofEpochMilli(date)
         .atZone(ZoneId.systemDefault())
         .toLocalDate()
         .format(DateFormatter)
+}
+
+private fun ExpenseEntity.monthYear(): MonthYear {
+    val localDate = Instant.ofEpochMilli(date)
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate()
+    return MonthYear(month = localDate.monthValue, year = localDate.year)
+}
+
+private data class MonthYear(
+    val month: Int,
+    val year: Int
+)
+
+private fun monthName(month: Int): String {
+    return when (month) {
+        1 -> "Januar"
+        2 -> "Februar"
+        3 -> "Marec"
+        4 -> "April"
+        5 -> "Maj"
+        6 -> "Junij"
+        7 -> "Julij"
+        8 -> "Avgust"
+        9 -> "September"
+        10 -> "Oktober"
+        11 -> "November"
+        12 -> "December"
+        else -> month.toString()
+    }
 }
 
 private fun Double.formatMoney(): String = "%.2f".format(this)

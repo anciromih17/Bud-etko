@@ -89,6 +89,7 @@ fun SettingsScreen(
     onProfileClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    onBudgetHistoryClick: () -> Unit = {},
     onAddExpenseClick: () -> Unit = {},
     onTransactionsClick: () -> Unit = {},
     onAnalyticsClick: () -> Unit = {},
@@ -105,6 +106,7 @@ fun SettingsScreen(
         onAnalyticsClick = onAnalyticsClick,
         onCategorySettingsClick = onCategorySettingsClick,
         onLogoutClick = onLogoutClick,
+        onBudgetHistoryClick = onBudgetHistoryClick,
         onOpenBudget = budgetViewModel::openBudgetDialog,
         onCloseBudget = budgetViewModel::closeBudgetDialog,
         onIncomeChange = budgetViewModel::onIncomeChange,
@@ -129,6 +131,7 @@ private fun SettingsContent(
     onAnalyticsClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    onBudgetHistoryClick: () -> Unit,
     onOpenBudget: () -> Unit,
     onCloseBudget: () -> Unit,
     onIncomeChange: (String) -> Unit,
@@ -167,6 +170,7 @@ private fun SettingsContent(
             item {
                 SettingsMenuCard(
                     onOpenBudget = onOpenBudget,
+                    onBudgetHistoryClick = onBudgetHistoryClick,
                     onCategorySettingsClick = onCategorySettingsClick
                 )
             }
@@ -265,6 +269,7 @@ private fun ProfileCard(onClick: () -> Unit) {
 @Composable
 private fun SettingsMenuCard(
     onOpenBudget: () -> Unit,
+    onBudgetHistoryClick: () -> Unit,
     onCategorySettingsClick: () -> Unit
 ) {
     Surface(
@@ -282,7 +287,7 @@ private fun SettingsMenuCard(
     ) {
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
             SettingsMenuRow(Icons.Outlined.EventNote, stringResource(R.string.settings_monthly_budget), onOpenBudget)
-            SettingsMenuRow(Icons.Outlined.History, stringResource(R.string.settings_budget_history), {})
+            SettingsMenuRow(Icons.Outlined.History, stringResource(R.string.settings_budget_history), onBudgetHistoryClick)
             SettingsMenuRow(Icons.Outlined.Category, stringResource(R.string.settings_category_settings), onCategorySettingsClick)
             SettingsMenuRow(Icons.Outlined.Notifications, stringResource(R.string.settings_notifications), {})
             SettingsMenuRow(Icons.Outlined.Settings, stringResource(R.string.settings_system), {})
@@ -560,6 +565,14 @@ private fun BudgetLimitCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MutedInk
                     )
+                    draft.trendNote?.let { note ->
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryAccent
+                        )
+                    }
                 }
                 Text(
                     text = "${draft.percent} %",
@@ -654,6 +667,7 @@ private fun SettingsContentPreview() {
             onAnalyticsClick = {},
             onCategorySettingsClick = {},
             onLogoutClick = {},
+            onBudgetHistoryClick = {},
             onOpenBudget = {},
             onCloseBudget = {},
             onIncomeChange = {},

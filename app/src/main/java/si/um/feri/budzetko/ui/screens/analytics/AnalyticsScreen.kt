@@ -3,6 +3,11 @@ package si.um.feri.budzetko.ui.screens.analytics
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.ArrowOutward
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -35,18 +43,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import si.um.feri.budzetko.data.entity.AiSummarySource
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
 import si.um.feri.budzetko.ui.theme.BudzetkoBackground
@@ -59,7 +74,7 @@ import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.DashboardCategorySpending
 import si.um.feri.budzetko.viewmodel.DashboardTransaction
 import si.um.feri.budzetko.viewmodel.DashboardUiState
-import si.um.feri.budzetko.viewmodel.DashboardViewModel
+import si.um.feri.budzetko.viewmodel.AnalyticsViewModel
 
 private val CardSurface = BudzetkoSurface
 private val Ink = BudzetkoInk
@@ -72,7 +87,7 @@ private val DangerColor = Color(0xFFFF7D8A)
 
 @Composable
 fun AnalyticsScreen(
-    viewModel: DashboardViewModel,
+    viewModel: AnalyticsViewModel,
     onProfileClick: () -> Unit,
     onHomeClick: () -> Unit,
     onTransactionsClick: () -> Unit,
@@ -82,9 +97,27 @@ fun AnalyticsScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var isAiRecommendationVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.aiSummary) {
+        if (uiState.aiSummary != null) {
+            isAiRecommendationVisible = true
+        }
+    }
 
     AnalyticsContent(
         uiState = uiState,
+        aiRecommendation = uiState.aiSummary,
+        isAiRecommendationVisible = isAiRecommendationVisible,
+        onGenerateAiRecommendation = {
+            viewModel.generateAndSaveAiSummary(uiState)
+            isAiRecommendationVisible = true
+        },
+        onDismissAiRecommendation = {
+            isAiRecommendationVisible = false
+        },
+        onPreviousMonthClick = viewModel::previousMonth,
+        onNextMonthClick = viewModel::nextMonth,
         onProfileClick = onProfileClick,
         onHomeClick = onHomeClick,
         onTransactionsClick = onTransactionsClick,
@@ -98,6 +131,12 @@ fun AnalyticsScreen(
 @Composable
 private fun AnalyticsContent(
     uiState: DashboardUiState,
+    aiRecommendation: String?,
+    isAiRecommendationVisible: Boolean,
+    onGenerateAiRecommendation: () -> Unit,
+    onDismissAiRecommendation: () -> Unit,
+    onPreviousMonthClick: () -> Unit,
+    onNextMonthClick: () -> Unit,
     onProfileClick: () -> Unit,
     onHomeClick: () -> Unit,
     onTransactionsClick: () -> Unit,
@@ -131,7 +170,18 @@ private fun AnalyticsContent(
                 AnalyticsHeader(onProfileClick = onProfileClick)
             }
             item {
+                AnalyticsMonthSelector(
+                    month = uiState.month,
+                    year = uiState.year,
+                    onPreviousClick = onPreviousMonthClick,
+                    onNextClick = onNextMonthClick
+                )
+            }
+            item {
                 AnalyticsSummaryRow(uiState = uiState)
+            }
+            item {
+                LimitAlertsCard(categories = uiState.categorySpending)
             }
             item {
                 CategoryDistributionCard(
@@ -140,10 +190,81 @@ private fun AnalyticsContent(
                 )
             }
             item {
-                AiRecommendationCard()
+                AiRecommendationCard(
+                    recommendation = aiRecommendation,
+                    recommendationSource = uiState.aiSummarySource,
+                    isRecommendationVisible = isAiRecommendationVisible,
+                    isGenerating = uiState.isAiSummaryGenerating,
+                    onGenerateClick = onGenerateAiRecommendation,
+                    onDismissClick = onDismissAiRecommendation
+                )
             }
             item {
                 SpendingChartCard(categories = uiState.categorySpending)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsMonthSelector(
+    month: Int,
+    year: Int,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        color = CardSurface
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onPreviousClick,
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(BudzetkoBackground)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronLeft,
+                    contentDescription = "Prejšnji mesec",
+                    tint = Ink
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = monthYearLabel(month, year),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Ink
+                )
+                Text(
+                    text = "Analitika za izbrani mesec",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MutedInk
+                )
+            }
+            IconButton(
+                onClick = onNextClick,
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(BudzetkoBackground)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = "Naslednji mesec",
+                    tint = Ink
+                )
             }
         }
     }
@@ -188,7 +309,9 @@ private fun AnalyticsSummaryRow(uiState: DashboardUiState) {
     } else {
         0.0
     }
-    val warningCount = uiState.categorySpending.count { it.limitAmount != null && it.progress >= 0.8f }
+    val overLimitCount = uiState.categorySpending.count { it.hasLimit && it.progress >= 1f }
+    val nearLimitCount = uiState.categorySpending.count { it.hasLimit && it.progress >= 0.8f && it.progress < 1f }
+    val warningCount = overLimitCount + nearLimitCount
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         AnalyticsMetricCard(
             modifier = Modifier.weight(1f),
@@ -203,7 +326,7 @@ private fun AnalyticsSummaryRow(uiState: DashboardUiState) {
             icon = Icons.Outlined.ErrorOutline,
             title = "Opozorila",
             value = warningCount.toString(),
-            subtitle = "Preseženih limitov",
+            subtitle = "$overLimitCount preseženih, $nearLimitCount blizu",
             iconBackground = if (warningCount > 0) DangerColor else SoftAccent,
             iconTint = if (warningCount > 0) Color.White else Ink
         )
@@ -245,6 +368,103 @@ private fun AnalyticsMetricCard(
             Text(text = value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Ink)
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MutedInk)
         }
+    }
+}
+
+@Composable
+private fun LimitAlertsCard(categories: List<DashboardCategorySpending>) {
+    val overLimitCategories = categories.filter { it.hasLimit && it.progress >= 1f }
+    val nearLimitCategories = categories.filter { it.hasLimit && it.progress >= 0.8f && it.progress < 1f }
+    if (overLimitCategories.isEmpty() && nearLimitCategories.isEmpty()) {
+        return
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(30.dp),
+        color = CardSurface
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(if (overLimitCategories.isNotEmpty()) DangerColor else WarningColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ErrorOutline,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = alertTitle(overLimitCategories.size, nearLimitCategories.size),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Ink
+                    )
+                    Text(
+                        text = "Preglej limite in po potrebi prilagodi proračun.",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MutedInk
+                    )
+                }
+            }
+
+            overLimitCategories.take(2).forEach { category ->
+                AlertCategoryLine(
+                    category = category,
+                    color = DangerColor,
+                    message = "Preseženo za ${(category.spentAmount - (category.limitAmount ?: 0.0)).formatMoney()}€"
+                )
+            }
+            nearLimitCategories.take(2).forEach { category ->
+                AlertCategoryLine(
+                    category = category,
+                    color = WarningColor,
+                    message = "Na voljo še ${((category.limitAmount ?: 0.0) - category.spentAmount).coerceAtLeast(0.0).formatMoney()}€"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlertCategoryLine(
+    category: DashboardCategorySpending,
+    color: Color,
+    message: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = category.categoryName,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = Ink
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
@@ -345,8 +565,8 @@ private fun AnalyticsCategoryRow(
         Text(
             text = when {
                 limit <= 0.0 -> "Limit še ni nastavljen"
-                progress >= 1f -> "Limit presežen"
-                progress >= 0.8f -> "Blizu limita"
+                progress >= 1f -> "Limit presežen za ${(category.spentAmount - limit).formatMoney()}€"
+                progress >= 0.8f -> "Blizu limita · na voljo še ${(limit - category.spentAmount).coerceAtLeast(0.0).formatMoney()}€"
                 else -> "${(progress * 100).toInt()}% porabljeno"
             },
             style = MaterialTheme.typography.bodySmall,
@@ -357,22 +577,26 @@ private fun AnalyticsCategoryRow(
 }
 
 @Composable
-private fun AiRecommendationCard() {
+private fun AiRecommendationCard(
+    recommendation: String?,
+    recommendationSource: AiSummarySource?,
+    isRecommendationVisible: Boolean,
+    isGenerating: Boolean,
+    onGenerateClick: () -> Unit,
+    onDismissClick: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(34.dp),
         color = CardSurface
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(22.dp)
+        Column(
+            modifier = Modifier.padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 54.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.Top
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
@@ -384,7 +608,10 @@ private fun AiRecommendationCard() {
                     Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = Ink, modifier = Modifier.size(22.dp))
                 }
                 Spacer(modifier = Modifier.width(14.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
                         text = "AI Priporočilo",
                         style = MaterialTheme.typography.titleMedium,
@@ -398,18 +625,116 @@ private fun AiRecommendationCard() {
                         color = MutedInk
                     )
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                if (recommendation != null && isRecommendationVisible) {
+                    IconButton(
+                        onClick = onDismissClick,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(SoftAccent)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = "Skrij priporočilo",
+                            tint = Ink,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Button(
+                    onClick = onGenerateClick,
+                    enabled = !isGenerating,
+                    modifier = Modifier.size(42.dp),
+                    shape = CircleShape,
+                    contentPadding = PaddingValues(0.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                ) {
+                    if (isGenerating) {
+                        Text(text = "...", fontWeight = FontWeight.ExtraBold)
+                    } else {
+                        Icon(Icons.Outlined.PlayArrow, contentDescription = null)
+                    }
+                }
             }
-            Button(
-                onClick = {},
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(top = 24.dp)
-                    .size(42.dp),
-                shape = CircleShape,
-                contentPadding = PaddingValues(0.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+            AnimatedVisibility(
+                visible = recommendation != null && isRecommendationVisible,
+                enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+                exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
             ) {
-                Icon(Icons.Outlined.PlayArrow, contentDescription = null)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AiRecommendationSourceLabel(source = recommendationSource)
+                    AiRecommendationList(text = recommendation.orEmpty())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiRecommendationSourceLabel(source: AiSummarySource?) {
+    val text = when (source) {
+        AiSummarySource.GEMINI -> "Vir: Gemini"
+        AiSummarySource.FALLBACK -> "Gemini ni bil dosegljiv, uporabljen je lokalni povzetek."
+        null -> return
+    }
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = if (source == AiSummarySource.GEMINI) LimeAccent.copy(alpha = 0.55f) else SoftAccent
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = Ink
+        )
+    }
+}
+
+@Composable
+private fun AiRecommendationList(text: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        text.lines()
+            .filter { it.isNotBlank() }
+            .forEach { line ->
+                Row(verticalAlignment = Alignment.Top) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(LimeAccent)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = line.highlightImportantParts(),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Ink
+                    )
+                }
+            }
+    }
+}
+
+private fun String.highlightImportantParts() = buildAnnotatedString {
+    append(this@highlightImportantParts)
+    val boldStyle = SpanStyle(fontWeight = FontWeight.ExtraBold)
+    listOf(
+        Regex("""\d+(?:\.\d+)?€"""),
+        Regex("""\d+%"""),
+        Regex("""kategoriji\s+([^:]+)"""),
+        Regex("""Kategorija\s+(.+?)\s+(?:je|ima)""")
+    ).forEach { regex ->
+        regex.findAll(this@highlightImportantParts).forEach { match ->
+            if (match.groups.size > 1 && match.groups[1] != null) {
+                val group = match.groups[1]!!
+                addStyle(boldStyle, group.range.first, group.range.last + 1)
+            } else {
+                addStyle(boldStyle, match.range.first, match.range.last + 1)
             }
         }
     }
@@ -528,7 +853,40 @@ private fun analyticsCategoryColor(category: DashboardCategorySpending): Color {
     )
 }
 
+private val DashboardCategorySpending.hasLimit: Boolean
+    get() = limitAmount != null && limitAmount > 0.0
+
+private fun alertTitle(overLimitCount: Int, nearLimitCount: Int): String {
+    return when {
+        overLimitCount > 0 && nearLimitCount > 0 ->
+            "$overLimitCount preseženih limitov, $nearLimitCount blizu limita"
+        overLimitCount > 0 ->
+            "$overLimitCount preseženih limitov"
+        else ->
+            "$nearLimitCount kategorij blizu limita"
+    }
+}
+
 private fun Double.formatMoney(): String = "%.2f".format(this)
+
+private fun monthYearLabel(month: Int, year: Int): String {
+    val monthName = when (month) {
+        1 -> "Januar"
+        2 -> "Februar"
+        3 -> "Marec"
+        4 -> "April"
+        5 -> "Maj"
+        6 -> "Junij"
+        7 -> "Julij"
+        8 -> "Avgust"
+        9 -> "September"
+        10 -> "Oktober"
+        11 -> "November"
+        12 -> "December"
+        else -> ""
+    }
+    return "$monthName $year"
+}
 
 @Preview(showBackground = true)
 @Composable
@@ -560,6 +918,12 @@ private fun AnalyticsContentPreview() {
                     )
                 )
             ),
+            aiRecommendation = null,
+            isAiRecommendationVisible = false,
+            onGenerateAiRecommendation = {},
+            onDismissAiRecommendation = {},
+            onPreviousMonthClick = {},
+            onNextMonthClick = {},
             onProfileClick = {},
             onHomeClick = {},
             onTransactionsClick = {},
