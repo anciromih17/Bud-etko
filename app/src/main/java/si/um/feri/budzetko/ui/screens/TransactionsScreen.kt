@@ -104,7 +104,10 @@ fun TransactionsScreen(
     onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     initialMonth: Int? = null,
-    initialYear: Int? = null
+    initialYear: Int? = null,
+    selectedMonthFilter: Int? = initialMonth,
+    selectedYearFilter: Int? = initialYear,
+    onMonthFilterChange: (month: Int?, year: Int?) -> Unit = { _, _ -> }
 ) {
     val expenses by expenseViewModel.expenses.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
@@ -112,15 +115,15 @@ fun TransactionsScreen(
     val categoriesById = categories.associateBy { it.id }
     var search by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
-    var selectedMonth by remember { mutableStateOf<Int?>(initialMonth) }
-    var selectedYear by remember { mutableStateOf<Int?>(initialYear) }
+    var selectedMonth by remember { mutableStateOf<Int?>(selectedMonthFilter) }
+    var selectedYear by remember { mutableStateOf<Int?>(selectedYearFilter) }
     var sortMode by remember { mutableStateOf(ExpenseSortMode.NEWEST) }
     var areFiltersExpanded by remember { mutableStateOf(initialMonth != null || initialYear != null) }
     var expensePendingDelete by remember { mutableStateOf<ExpenseEntity?>(null) }
 
-    LaunchedEffect(initialMonth, initialYear) {
-        selectedMonth = initialMonth
-        selectedYear = initialYear
+    LaunchedEffect(selectedMonthFilter, selectedYearFilter) {
+        selectedMonth = selectedMonthFilter
+        selectedYear = selectedYearFilter
     }
 
     val availableMonths = expenses
@@ -180,11 +183,13 @@ fun TransactionsScreen(
                     onClearMonth = {
                         selectedMonth = null
                         selectedYear = null
+                        onMonthFilterChange(null, null)
                     },
                     onClearCategory = { selectedCategoryId = null },
                     onMonthSelected = { monthYear ->
                         selectedMonth = monthYear?.month
                         selectedYear = monthYear?.year
+                        onMonthFilterChange(monthYear?.month, monthYear?.year)
                     },
                     onCategorySelected = { selectedCategoryId = it }
                 )

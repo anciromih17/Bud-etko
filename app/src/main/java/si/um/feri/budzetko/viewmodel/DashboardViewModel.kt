@@ -5,10 +5,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -25,10 +28,11 @@ import si.um.feri.budzetko.data.repository.ExpenseRepository
 import si.um.feri.budzetko.domain.ai.AiRecommendationService
 import si.um.feri.budzetko.domain.ai.AiRecommendationSource
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class DashboardViewModel(
-    budgetRepository: BudgetRepository,
-    categoryRepository: CategoryRepository,
-    expenseRepository: ExpenseRepository,
+    private val budgetRepository: BudgetRepository,
+    private val categoryRepository: CategoryRepository,
+    private val expenseRepository: ExpenseRepository,
     private val aiSummaryRepository: AiSummaryRepository,
     private val aiRecommendationService: AiRecommendationService
 ) : ViewModel() {
@@ -37,20 +41,18 @@ class DashboardViewModel(
         FirebaseAuth.getInstance().currentUser?.uid ?: "unknown-user"
 
     private val today = LocalDate.now()
-    private val monthStart = today.withDayOfMonth(1)
-    private val nextMonthStart = monthStart.plusMonths(1)
-    private val startMillis = monthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-    private val endMillis = nextMonthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+    private val selectedMonth = MutableStateFlow(YearMonth.now())
     private val isAiSummaryGenerating = MutableStateFlow(false)
 
-    private val dashboardSources = combine(
-        budgetRepository.observeBudget(currentUserId, today.monthValue, today.year),
-        budgetRepository.observeCategoriesWithMonthlyLimit(currentUserId, today.monthValue, today.year),
+    private fun dashboardSources(month: YearMonth) = combine(
+        budgetRepository.observeBudget(currentUserId, month.monthValue, month.year),
+        budgetRepository.observeCategoriesWithMonthlyLimit(currentUserId, month.monthValue, month.year),
         categoryRepository.observeCategories(currentUserId),
         expenseRepository.observeExpenses(currentUserId),
-        aiSummaryRepository.observeSummary(currentUserId, today.monthValue, today.year)
+        aiSummaryRepository.observeSummary(currentUserId, month.monthValue, month.year)
     ) { budget, categoriesWithLimits, categories, expenses, aiSummary ->
         DashboardSources(
+            month = month,
             budget = budget,
             categoriesWithLimits = categoriesWithLimits,
             categories = categories,
@@ -59,11 +61,17 @@ class DashboardViewModel(
         )
     }
 
-    val uiState = combine(
-        dashboardSources,
-        isAiSummaryGenerating
-    ) { sources, isGenerating ->
+    val uiState = selectedMonth.flatMapLatest { month ->
+        combine(
+            dashboardSources(month),
+            isAiSummaryGenerating
+        ) { sources, isGenerating ->
         val budget = sources.budget
+        val month = sources.month
+        val monthStart = month.atDay(1)
+        val nextMonthStart = month.plusMonths(1).atDay(1)
+        val startMillis = monthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endMillis = nextMonthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
         val categoriesWithLimits = sources.categoriesWithLimits
         val categories = sources.categories
         val expenses = sources.expenses
@@ -101,8 +109,8 @@ class DashboardViewModel(
             }
 
         DashboardUiState(
-            month = today.monthValue,
-            year = today.year,
+            month = month.monthValue,
+            year = month.year,
             totalBudget = budget?.income ?: categoriesWithLimits.sumOf { it.limitAmount ?: 0.0 },
             totalSpent = currentMonthExpenses.sumOf { it.amount },
             aiSummary = aiSummary?.summary,
@@ -111,18 +119,24 @@ class DashboardViewModel(
             categorySpending = categorySpending,
             recentTransactions = recentTransactions
         )
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = DashboardUiState(month = today.monthValue, year = today.year)
     )
 
+    fun setMonth(month: Int, year: Int) {
+        selectedMonth.update { YearMonth.of(year, month) }
+    }
+
     fun saveAiSummary(summary: String) {
         viewModelScope.launch {
+            val month = selectedMonth.value
             aiSummaryRepository.saveSummary(
                 userId = currentUserId,
-                month = today.monthValue,
-                year = today.year,
+                month = month.monthValue,
+                year = month.year,
                 summary = summary,
                 source = AiSummarySource.FALLBACK
             )
@@ -136,8 +150,8 @@ class DashboardViewModel(
                 val result = aiRecommendationService.generate(snapshot)
                 aiSummaryRepository.saveSummary(
                     userId = currentUserId,
-                    month = today.monthValue,
-                    year = today.year,
+                    month = snapshot.month,
+                    year = snapshot.year,
                     summary = result.summary,
                     source = when (result.source) {
                         AiRecommendationSource.GEMINI -> AiSummarySource.GEMINI
@@ -175,6 +189,7 @@ class DashboardViewModel(
 }
 
 private data class DashboardSources(
+    val month: YearMonth,
     val budget: BudgetEntity?,
     val categoriesWithLimits: List<CategoryWithMonthlyLimit>,
     val categories: List<CategoryEntity>,

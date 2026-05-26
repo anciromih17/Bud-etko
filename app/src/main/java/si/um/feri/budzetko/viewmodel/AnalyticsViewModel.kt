@@ -84,6 +84,10 @@ class AnalyticsViewModel(
         selectedMonth.update { it.plusMonths(1) }
     }
 
+    fun setMonth(month: Int, year: Int) {
+        selectedMonth.update { YearMonth.of(year, month) }
+    }
+
     fun generateAndSaveAiSummary(snapshot: DashboardUiState) {
         viewModelScope.launch {
             isAiSummaryGenerating.update { true }

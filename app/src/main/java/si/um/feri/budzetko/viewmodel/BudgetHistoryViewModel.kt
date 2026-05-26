@@ -3,6 +3,7 @@ package si.um.feri.budzetko.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,20 +18,22 @@ import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.data.repository.AiSummaryRepository
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.ExpenseRepository
-import si.um.feri.budzetko.data.repository.UserRepository.Companion.DEMO_USER_ID
 
 class BudgetHistoryViewModel(
     budgetRepository: BudgetRepository,
     expenseRepository: ExpenseRepository,
     aiSummaryRepository: AiSummaryRepository
 ) : ViewModel() {
+    private val currentUserId: String =
+        FirebaseAuth.getInstance().currentUser?.uid ?: "unknown-user"
+
     private val searchQuery = MutableStateFlow("")
     private val expandedMonthKey = MutableStateFlow<String?>(null)
 
     private val historySources = combine(
-        budgetRepository.observeBudgets(DEMO_USER_ID),
-        expenseRepository.observeExpenses(DEMO_USER_ID),
-        aiSummaryRepository.observeSummaries(DEMO_USER_ID)
+        budgetRepository.observeBudgets(currentUserId),
+        expenseRepository.observeExpenses(currentUserId),
+        aiSummaryRepository.observeSummaries(currentUserId)
     ) { budgets, expenses, summaries ->
         BudgetHistorySources(
             budgets = budgets,

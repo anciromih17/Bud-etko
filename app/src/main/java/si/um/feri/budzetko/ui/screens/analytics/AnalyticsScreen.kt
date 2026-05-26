@@ -94,8 +94,15 @@ fun AnalyticsScreen(
     onCategorySettingsClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    selectedMonth: Int,
+    selectedYear: Int,
+    onMonthChange: (month: Int, year: Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(selectedMonth, selectedYear) {
+        viewModel.setMonth(selectedMonth, selectedYear)
+    }
+
     val uiState by viewModel.uiState.collectAsState()
     var isAiRecommendationVisible by remember { mutableStateOf(false) }
 
@@ -116,8 +123,14 @@ fun AnalyticsScreen(
         onDismissAiRecommendation = {
             isAiRecommendationVisible = false
         },
-        onPreviousMonthClick = viewModel::previousMonth,
-        onNextMonthClick = viewModel::nextMonth,
+        onPreviousMonthClick = {
+            val previous = previousMonth(uiState.month, uiState.year)
+            onMonthChange(previous.first, previous.second)
+        },
+        onNextMonthClick = {
+            val next = nextMonth(uiState.month, uiState.year)
+            onMonthChange(next.first, next.second)
+        },
         onProfileClick = onProfileClick,
         onHomeClick = onHomeClick,
         onTransactionsClick = onTransactionsClick,
@@ -868,6 +881,14 @@ private fun alertTitle(overLimitCount: Int, nearLimitCount: Int): String {
 }
 
 private fun Double.formatMoney(): String = "%.2f".format(this)
+
+private fun previousMonth(month: Int, year: Int): Pair<Int, Int> {
+    return if (month == 1) 12 to year - 1 else month - 1 to year
+}
+
+private fun nextMonth(month: Int, year: Int): Pair<Int, Int> {
+    return if (month == 12) 1 to year + 1 else month + 1 to year
+}
 
 private fun monthYearLabel(month: Int, year: Int): String {
     val monthName = when (month) {

@@ -2,6 +2,7 @@ package si.um.feri.budzetko.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,9 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +41,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -44,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,6 +84,7 @@ private val MutedInk = Color(0xFF71706A)
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddExpenseScreen(
     expenseViewModel: ExpenseViewModel,
@@ -96,6 +103,7 @@ fun AddExpenseScreen(
     var dateInput by remember { mutableStateOf(LocalDate.now().format(DateFormatter)) }
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isDatePickerOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(expenseToEdit?.id, categories) {
         if (expenseToEdit == null) {
@@ -126,13 +134,23 @@ fun AddExpenseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.22f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onClose
+                )
                 .padding(horizontal = 20.dp, vertical = 28.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 720.dp),
+                    .heightIn(max = 720.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = {}
+                    ),
                 shape = RoundedCornerShape(30.dp),
                 color = CardSurface,
                 shadowElevation = 12.dp
@@ -164,6 +182,9 @@ fun AddExpenseScreen(
                             onDateChange = {
                                 dateInput = it
                                 errorMessage = null
+                            },
+                            onDatePickerClick = {
+                                isDatePickerOpen = true
                             },
                             onCategorySelected = {
                                 selectedCategoryId = it
@@ -225,6 +246,41 @@ fun AddExpenseScreen(
             }
         }
     }
+
+    if (isDatePickerOpen) {
+        val selectedDateMillis = parseDate(dateInput)
+            ?.atStartOfDay(ZoneId.systemDefault())
+            ?.toInstant()
+            ?.toEpochMilli()
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDateMillis)
+
+        DatePickerDialog(
+            onDismissRequest = { isDatePickerOpen = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            dateInput = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.systemDefault())
+                                .toLocalDate()
+                                .format(DateFormatter)
+                            errorMessage = null
+                        }
+                        isDatePickerOpen = false
+                    }
+                ) {
+                    Text("Izberi")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isDatePickerOpen = false }) {
+                    Text("Prekliči")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
 
 @Composable
@@ -273,6 +329,7 @@ private fun AddExpenseFormCard(
     onDescriptionChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
     onDateChange: (String) -> Unit,
+    onDatePickerClick: () -> Unit,
     onCategorySelected: (Long) -> Unit,
     onAddCategoryClick: () -> Unit,
     onSaveClick: () -> Unit
@@ -343,16 +400,29 @@ private fun AddExpenseFormCard(
                 }
             }
 
-            OutlinedTextField(
-                value = dateInput,
-                onValueChange = onDateChange,
-                label = { Text("Datum") },
-                leadingIcon = {
-                    Icon(Icons.Outlined.CalendarMonth, contentDescription = null)
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = dateInput,
+                    onValueChange = onDateChange,
+                    label = { Text("Datum") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.CalendarMonth, contentDescription = null)
+                    },
+                    singleLine = true,
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                            onClick = onDatePickerClick
+                        )
+                )
+            }
 
             OutlinedTextField(
                 value = note,

@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.time.YearMonth
 import si.um.feri.budzetko.data.database.AppDatabase
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.data.repository.AiSummaryRepository
@@ -85,12 +86,19 @@ fun BudzetkoApp() {
     var currentScreen by remember { mutableStateOf(BudzetkoScreen.Dashboard) }
     var isAddExpenseDialogOpen by remember { mutableStateOf(false) }
     var expenseBeingEdited by remember { mutableStateOf<ExpenseEntity?>(null) }
-    var transactionsInitialMonth by remember { mutableStateOf<Int?>(null) }
-    var transactionsInitialYear by remember { mutableStateOf<Int?>(null) }
+    var selectedAppMonth by remember { mutableStateOf(YearMonth.now()) }
+    var transactionsMonthFilter by remember { mutableStateOf<Int?>(null) }
+    var transactionsYearFilter by remember { mutableStateOf<Int?>(null) }
 
-    fun openTransactions(month: Int? = null, year: Int? = null) {
-        transactionsInitialMonth = month
-        transactionsInitialYear = year
+    fun openTransactions(
+        month: Int? = selectedAppMonth.monthValue,
+        year: Int? = selectedAppMonth.year
+    ) {
+        transactionsMonthFilter = month
+        transactionsYearFilter = year
+        if (month != null && year != null) {
+            selectedAppMonth = YearMonth.of(year, month)
+        }
         currentScreen = BudzetkoScreen.Transactions
     }
 
@@ -163,7 +171,9 @@ fun BudzetkoApp() {
                 isAddExpenseDialogOpen = true
             },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics },
-            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            selectedMonth = selectedAppMonth.monthValue,
+            selectedYear = selectedAppMonth.year
         )
 
         BudzetkoScreen.Analytics -> AnalyticsScreen(
@@ -176,7 +186,14 @@ fun BudzetkoApp() {
                 expenseBeingEdited = null
                 isAddExpenseDialogOpen = true
             },
-            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            selectedMonth = selectedAppMonth.monthValue,
+            selectedYear = selectedAppMonth.year,
+            onMonthChange = { month, year ->
+                selectedAppMonth = YearMonth.of(year, month)
+                transactionsMonthFilter = month
+                transactionsYearFilter = year
+            }
         )
 
         BudzetkoScreen.Categories -> CategoryScreen(
@@ -236,8 +253,17 @@ fun BudzetkoApp() {
             onProfileClick = { currentScreen = BudzetkoScreen.Profile },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics },
             onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
-            initialMonth = transactionsInitialMonth,
-            initialYear = transactionsInitialYear
+            initialMonth = transactionsMonthFilter,
+            initialYear = transactionsYearFilter,
+            selectedMonthFilter = transactionsMonthFilter,
+            selectedYearFilter = transactionsYearFilter,
+            onMonthFilterChange = { month, year ->
+                transactionsMonthFilter = month
+                transactionsYearFilter = year
+                if (month != null && year != null) {
+                    selectedAppMonth = YearMonth.of(year, month)
+                }
+            }
         )
 
         BudzetkoScreen.Profile -> ProfileScreen(

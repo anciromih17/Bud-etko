@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +72,7 @@ import si.um.feri.budzetko.ui.theme.BudzetkoInk
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.BudgetLimitDraft
 import si.um.feri.budzetko.viewmodel.BudgetUiState
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
@@ -304,6 +307,7 @@ private fun SettingsMenuRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -374,13 +378,23 @@ private fun BudgetDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.18f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onDismiss
+                )
                 .padding(horizontal = 22.dp, vertical = 28.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 760.dp),
+                    .heightIn(max = 760.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = {}
+                    ),
                 shape = RoundedCornerShape(30.dp),
                 color = CardSurface,
                 border = BorderStroke(1.dp, SoftBorder),
@@ -541,10 +555,16 @@ private fun BudgetLimitCard(
     onLimitChange: (Long, Float) -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(26.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
+            ),
         shape = RoundedCornerShape(26.dp),
-        color = CardSurface,
-        border = BorderStroke(1.dp, SoftBorder)
+        color = budgetCardBackground(draft.category)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -615,11 +635,12 @@ private fun BudgetLimitCard(
 
 @Composable
 private fun CategoryMarker(category: CategoryEntity) {
+    val accent = categoryAccent(category)
     Box(
         modifier = Modifier
             .size(32.dp)
             .clip(CircleShape)
-            .background(SecondaryAccent),
+            .background(accent.copy(alpha = 0.45f)),
         contentAlignment = Alignment.Center
     ) {
         if (category.emoji.isNullOrBlank()) {
@@ -627,12 +648,24 @@ private fun CategoryMarker(category: CategoryEntity) {
                 modifier = Modifier
                     .size(12.dp)
                     .clip(CircleShape)
-                    .background(LimeAccent)
+                    .background(accent)
             )
         } else {
             Text(text = category.emoji.orEmpty())
         }
     }
+}
+
+private fun categoryAccent(category: CategoryEntity): Color {
+    return budzetkoCategoryColor(
+        categoryId = category.id,
+        colorIndex = category.colorIndex,
+        hasEmoji = !category.emoji.isNullOrBlank()
+    )
+}
+
+private fun budgetCardBackground(category: CategoryEntity): Color {
+    return categoryAccent(category).copy(alpha = 0.13f)
 }
 
 @Composable

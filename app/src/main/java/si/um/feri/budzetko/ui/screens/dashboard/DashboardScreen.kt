@@ -30,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -76,8 +77,14 @@ fun DashboardScreen(
     onAddExpenseClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    selectedMonth: Int,
+    selectedYear: Int,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(selectedMonth, selectedYear) {
+        viewModel.setMonth(selectedMonth, selectedYear)
+    }
+
     val uiState by viewModel.uiState.collectAsState()
 
     DashboardContent(
