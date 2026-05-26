@@ -26,6 +26,24 @@ interface BudgetDao {
     @Query(
         """
         SELECT * FROM budgets
+        WHERE user_id = :userId
+        ORDER BY year DESC, month DESC
+        """
+    )
+    fun observeBudgets(userId: String): Flow<List<BudgetEntity>>
+
+    @Query(
+        """
+        SELECT * FROM budgets
+        WHERE user_id = :userId
+        ORDER BY year DESC, month DESC
+        """
+    )
+    suspend fun getBudgets(userId: String): List<BudgetEntity>
+
+    @Query(
+        """
+        SELECT * FROM budgets
         WHERE user_id = :userId AND month = :month AND year = :year
         LIMIT 1
         """
@@ -112,4 +130,32 @@ interface BudgetDao {
         startDate: Long,
         endDate: Long
     ): Flow<List<BudgetCategoryProgress>>
+
+    @Query(
+        """
+        SELECT budget_categories.category_id AS category_id,
+               categories.name AS category_name,
+               budget_categories.limit_amount AS limit_amount,
+               COALESCE(SUM(expenses.amount), 0.0) AS spent_amount
+        FROM budget_categories
+        INNER JOIN budgets ON budgets.id = budget_categories.budget_id
+        INNER JOIN categories ON categories.id = budget_categories.category_id
+        LEFT JOIN expenses
+            ON expenses.category_id = budget_categories.category_id
+            AND expenses.user_id = budgets.user_id
+            AND expenses.date BETWEEN :startDate AND :endDate
+        WHERE budgets.user_id = :userId
+            AND budgets.month = :month
+            AND budgets.year = :year
+        GROUP BY budget_categories.category_id, categories.name, budget_categories.limit_amount
+        ORDER BY categories.name COLLATE NOCASE
+        """
+    )
+    suspend fun getBudgetProgress(
+        userId: String,
+        month: Int,
+        year: Int,
+        startDate: Long,
+        endDate: Long
+    ): List<BudgetCategoryProgress>
 }

@@ -20,8 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowOutward
+import androidx.compose.material.icons.outlined.SouthWest
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -68,17 +68,6 @@ private val PrimaryAccent = BudzetkoPurple
 private val LimeAccent = BudzetkoLime
 private val SoftAccent = Color(0xFFF4F0FF)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-private val DashboardChartColors = listOf(
-    Color(0xFFFFD84D),
-    Color(0xFFBFAEF7),
-    Color(0xFFFF9F6E),
-    Color(0xFF9DE7B7),
-    Color(0xFFFFB7CC),
-    Color(0xFF8DD7F4),
-    Color(0xFFD8F25D),
-    Color(0xFF7F67F5)
-)
-
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
@@ -220,7 +209,7 @@ private fun SummaryCard(
                 SummaryMetricCard(
                     modifier = Modifier.weight(1f),
                     iconColor = Ink,
-                    icon = Icons.Outlined.ArrowDownward,
+                    icon = Icons.Outlined.SouthWest,
                     label = "Porabljeno",
                     value = "${uiState.totalSpent.formatMoney()}€"
                 )
@@ -314,10 +303,9 @@ private fun SpendingByCategoryCard(
                         .size(148.dp)
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    visibleCategories.forEachIndexed { index, category ->
+                    visibleCategories.forEach { category ->
                         CategoryProgressRow(
-                            category = category,
-                            chartColor = dashboardChartColor(index)
+                            category = category
                         )
                     }
                 }
@@ -336,10 +324,10 @@ private fun CategoryDonutChart(
         val stroke = Stroke(width = 26.dp.toPx(), cap = StrokeCap.Butt)
         val size = Size(this.size.minDimension, this.size.minDimension)
         var startAngle = -90f
-        categories.forEachIndexed { index, category ->
+        categories.forEach { category ->
             val sweep = ((category.spentAmount / total) * 360.0).toFloat()
             drawArc(
-                color = dashboardChartColor(index),
+                color = dashboardCategoryColor(category),
                 startAngle = startAngle,
                 sweepAngle = sweep,
                 useCenter = false,
@@ -353,15 +341,10 @@ private fun CategoryDonutChart(
 
 @Composable
 private fun CategoryProgressRow(
-    category: DashboardCategorySpending,
-    chartColor: Color
+    category: DashboardCategorySpending
 ) {
     val progress = category.progress.coerceIn(0f, 1f)
-    val iconColor = budzetkoCategoryColor(
-        categoryId = category.categoryId,
-        colorIndex = category.colorIndex,
-        hasEmoji = !category.emoji.isNullOrBlank()
-    )
+    val iconColor = dashboardCategoryColor(category)
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
@@ -503,8 +486,12 @@ private fun EmptyCardText(text: String) {
     )
 }
 
-private fun dashboardChartColor(index: Int): Color {
-    return DashboardChartColors[index.coerceAtLeast(0) % DashboardChartColors.size]
+private fun dashboardCategoryColor(category: DashboardCategorySpending): Color {
+    return budzetkoCategoryColor(
+        categoryId = category.categoryId,
+        colorIndex = category.colorIndex,
+        hasEmoji = !category.emoji.isNullOrBlank()
+    )
 }
 
 private fun ExpenseEntity.dateLabel(): String {

@@ -1,12 +1,16 @@
 package si.um.feri.budzetko.viewmodel
 
 import si.um.feri.budzetko.data.entity.ExpenseEntity
+import si.um.feri.budzetko.data.entity.AiSummarySource
 
 data class DashboardUiState(
     val month: Int,
     val year: Int,
     val totalBudget: Double = 0.0,
     val totalSpent: Double = 0.0,
+    val aiSummary: String? = null,
+    val aiSummarySource: AiSummarySource? = null,
+    val isAiSummaryGenerating: Boolean = false,
     val categorySpending: List<DashboardCategorySpending> = emptyList(),
     val recentTransactions: List<DashboardTransaction> = emptyList()
 ) {

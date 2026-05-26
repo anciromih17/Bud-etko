@@ -1,8 +1,11 @@
 package si.um.feri.budzetko.data.repository
 
+import java.time.LocalDate
+import java.time.ZoneId
 import si.um.feri.budzetko.data.dao.BudgetDao
 import si.um.feri.budzetko.data.entity.BudgetCategoryEntity
 import si.um.feri.budzetko.data.entity.BudgetEntity
+import si.um.feri.budzetko.data.model.BudgetCategoryProgress
 import si.um.feri.budzetko.data.model.CategoryWithMonthlyLimit
 import kotlinx.coroutines.flow.Flow
 
@@ -23,6 +26,32 @@ class BudgetRepository(
 
     fun observeBudget(userId: String, month: Int, year: Int): Flow<BudgetEntity?> {
         return budgetDao.observeBudget(userId, month, year)
+    }
+
+    fun observeBudgets(userId: String): Flow<List<BudgetEntity>> {
+        return budgetDao.observeBudgets(userId)
+    }
+
+    suspend fun getBudgets(userId: String): List<BudgetEntity> {
+        return budgetDao.getBudgets(userId)
+    }
+
+    suspend fun getBudgetProgressForMonth(
+        userId: String,
+        month: Int,
+        year: Int
+    ): List<BudgetCategoryProgress> {
+        val monthStart = LocalDate.of(year, month, 1)
+        val nextMonthStart = monthStart.plusMonths(1)
+        val startMillis = monthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val endMillis = nextMonthStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+        return budgetDao.getBudgetProgress(
+            userId = userId,
+            month = month,
+            year = year,
+            startDate = startMillis,
+            endDate = endMillis
+        )
     }
 
     suspend fun getBudgetCategoriesForMonth(

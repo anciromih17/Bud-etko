@@ -27,8 +27,14 @@ data class AiSummaryEntity(
     val month: Int,
     val year: Int,
     val summary: String,
+    val source: AiSummarySource = AiSummarySource.FALLBACK,
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "user_id")
     val userId: String
 )
+
+enum class AiSummarySource {
+    GEMINI,
+    FALLBACK
+}

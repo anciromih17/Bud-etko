@@ -11,12 +11,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import si.um.feri.budzetko.data.entity.BudgetEntity
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.UserRepository
 import si.um.feri.budzetko.data.repository.UserRepository.Companion.DEMO_USER_ID
 import si.um.feri.budzetko.domain.budget.BudgetSuggestionEngine
+import si.um.feri.budzetko.domain.budget.BudgetTrendStat
 
 class BudgetViewModel(
     private val budgetRepository: BudgetRepository,
@@ -134,12 +136,65 @@ class BudgetViewModel(
             return
         }
 
-        formState.update {
-            it.copy(
-                proposedLimits = BudgetSuggestionEngine.suggestLimits(categories, income),
-                editBaselinePercents = emptyMap(),
-                errorMessage = null,
-                successMessage = null
+        viewModelScope.launch {
+            val state = formState.value
+            val baseSuggestions = BudgetSuggestionEngine.suggestLimits(categories, income)
+            val trendStats = loadTrendStats(
+                selectedMonth = state.month,
+                selectedYear = state.year
+            )
+            val adjustedSuggestions = BudgetSuggestionEngine.applyTrendAdjustments(
+                drafts = baseSuggestions,
+                trendStats = trendStats,
+                income = income
+            )
+            val trendMessage = if (trendStats.isEmpty()) {
+                "Limiti so predlagani po pravilu 50/30/20. Za trendno prilagoditev dodaj vsaj en pretekli proračun s stroški."
+            } else {
+                "Limiti so prilagojeni glede na preteklo porabo."
+            }
+            formState.update {
+                it.copy(
+                    proposedLimits = adjustedSuggestions,
+                    editBaselinePercents = emptyMap(),
+                    errorMessage = null,
+                    successMessage = trendMessage
+                )
+            }
+        }
+    }
+
+    private suspend fun loadTrendStats(
+        selectedMonth: Int,
+        selectedYear: Int
+    ): Map<Long, BudgetTrendStat> {
+        val selectedDate = LocalDate.of(selectedYear, selectedMonth, 1)
+        val budgets = budgetRepository.getBudgets(DEMO_USER_ID)
+            .filter {
+                LocalDate.of(it.year, it.month, 1).isBefore(selectedDate)
+            }
+            .sortedWith(compareByDescending<BudgetEntity> { it.year }.thenByDescending { it.month })
+            .take(3)
+
+        val ratiosByCategory = mutableMapOf<Long, MutableList<Double>>()
+        budgets.forEach { budget ->
+            budgetRepository.getBudgetProgressForMonth(
+                userId = DEMO_USER_ID,
+                month = budget.month,
+                year = budget.year
+            ).forEach { progress ->
+                if (progress.limitAmount > 0.0) {
+                    ratiosByCategory.getOrPut(progress.categoryId) { mutableListOf() }
+                        .add(progress.spentAmount / progress.limitAmount)
+                }
+            }
+        }
+
+        return ratiosByCategory.mapValues { (categoryId, ratios) ->
+            BudgetTrendStat(
+                categoryId = categoryId,
+                averageUsageRatio = ratios.average(),
+                monthCount = ratios.size
             )
         }
     }

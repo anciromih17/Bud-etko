@@ -6,5 +6,6 @@ data class BudgetLimitDraft(
     val category: CategoryEntity,
     val percent: Int,
     val limitAmount: Double,
-    val isEditing: Boolean = false
+    val isEditing: Boolean = false,
+    val trendNote: String? = null
 )

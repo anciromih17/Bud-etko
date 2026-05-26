@@ -12,19 +12,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import si.um.feri.budzetko.data.database.AppDatabase
+import si.um.feri.budzetko.data.repository.AiSummaryRepository
 import si.um.feri.budzetko.data.repository.BudgetRepository
 import si.um.feri.budzetko.data.repository.CategoryRepository
 import si.um.feri.budzetko.data.repository.ExpenseRepository
 import si.um.feri.budzetko.data.repository.UserRepository
 import si.um.feri.budzetko.data.entity.ExpenseEntity
+import si.um.feri.budzetko.domain.ai.AiRecommendationService
+import si.um.feri.budzetko.domain.ai.GeminiAiRecommendationClient
 import si.um.feri.budzetko.ui.screens.AddExpenseScreen
 import si.um.feri.budzetko.ui.screens.TransactionsScreen
 import si.um.feri.budzetko.ui.screens.analytics.AnalyticsScreen
 import si.um.feri.budzetko.ui.screens.categories.CategoryScreen
 import si.um.feri.budzetko.ui.screens.dashboard.DashboardScreen
+import si.um.feri.budzetko.ui.screens.history.BudgetHistoryScreen
 import si.um.feri.budzetko.ui.screens.profile.ProfileScreen
 import si.um.feri.budzetko.ui.screens.settings.SettingsScreen
+import si.um.feri.budzetko.viewmodel.BudgetHistoryViewModel
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.viewmodel.AnalyticsViewModel
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.DashboardViewModel
@@ -52,10 +58,24 @@ fun BudzetkoApp() {
     val categoryRepository = remember { CategoryRepository(database.categoryDao()) }
     val userRepository = remember { UserRepository(database.userDao()) }
     val expenseRepository = remember { ExpenseRepository(database.expenseDao()) }
+    val aiSummaryRepository = remember { AiSummaryRepository(database.aiSummaryDao()) }
+    val aiRecommendationService = remember {
+        AiRecommendationService(
+            geminiClient = GeminiAiRecommendationClient(apiKey = BuildConfig.GEMINI_API_KEY)
+        )
+    }
 
     var currentScreen by remember { mutableStateOf(BudzetkoScreen.Dashboard) }
     var isAddExpenseDialogOpen by remember { mutableStateOf(false) }
     var expenseBeingEdited by remember { mutableStateOf<ExpenseEntity?>(null) }
+    var transactionsInitialMonth by remember { mutableStateOf<Int?>(null) }
+    var transactionsInitialYear by remember { mutableStateOf<Int?>(null) }
+
+    fun openTransactions(month: Int? = null, year: Int? = null) {
+        transactionsInitialMonth = month
+        transactionsInitialYear = year
+        currentScreen = BudzetkoScreen.Transactions
+    }
 
     val categoryViewModel: CategoryViewModel = viewModel(
         factory = CategoryViewModel.Factory(
@@ -72,11 +92,29 @@ fun BudzetkoApp() {
             userRepository = userRepository
         )
     )
+    val budgetHistoryViewModel: BudgetHistoryViewModel = viewModel(
+        factory = BudgetHistoryViewModel.Factory(
+            budgetRepository = budgetRepository,
+            expenseRepository = expenseRepository,
+            aiSummaryRepository = aiSummaryRepository
+        )
+    )
     val dashboardViewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModel.Factory(
             budgetRepository = budgetRepository,
             categoryRepository = categoryRepository,
-            expenseRepository = expenseRepository
+            expenseRepository = expenseRepository,
+            aiSummaryRepository = aiSummaryRepository,
+            aiRecommendationService = aiRecommendationService
+        )
+    )
+    val analyticsViewModel: AnalyticsViewModel = viewModel(
+        factory = AnalyticsViewModel.Factory(
+            budgetRepository = budgetRepository,
+            categoryRepository = categoryRepository,
+            expenseRepository = expenseRepository,
+            aiSummaryRepository = aiSummaryRepository,
+            aiRecommendationService = aiRecommendationService
         )
     )
     val userViewModel: UserViewModel = viewModel(
@@ -93,7 +131,7 @@ fun BudzetkoApp() {
         BudzetkoScreen.Dashboard -> DashboardScreen(
             viewModel = dashboardViewModel,
             onProfileClick = { currentScreen = BudzetkoScreen.Profile },
-            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions },
+            onTransactionsClick = { openTransactions() },
             onAddExpenseClick = {
                 expenseBeingEdited = null
                 isAddExpenseDialogOpen = true
@@ -103,10 +141,10 @@ fun BudzetkoApp() {
         )
 
         BudzetkoScreen.Analytics -> AnalyticsScreen(
-            viewModel = dashboardViewModel,
+            viewModel = analyticsViewModel,
             onProfileClick = { currentScreen = BudzetkoScreen.Profile },
             onHomeClick = { currentScreen = BudzetkoScreen.Dashboard },
-            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions },
+            onTransactionsClick = { openTransactions() },
             onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories },
             onAddExpenseClick = {
                 expenseBeingEdited = null
@@ -124,7 +162,7 @@ fun BudzetkoApp() {
                 expenseBeingEdited = null
                 isAddExpenseDialogOpen = true
             },
-            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions },
+            onTransactionsClick = { openTransactions() },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics }
         )
 
@@ -133,12 +171,27 @@ fun BudzetkoApp() {
             onHomeClick = { currentScreen = BudzetkoScreen.Dashboard },
             onProfileClick = { currentScreen = BudzetkoScreen.Profile },
             onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories },
+            onBudgetHistoryClick = { currentScreen = BudzetkoScreen.BudgetHistory },
             onAddExpenseClick = {
                 expenseBeingEdited = null
                 isAddExpenseDialogOpen = true
             },
-            onTransactionsClick = { currentScreen = BudzetkoScreen.Transactions },
+            onTransactionsClick = { openTransactions() },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics }
+        )
+
+        BudzetkoScreen.BudgetHistory -> BudgetHistoryScreen(
+            viewModel = budgetHistoryViewModel,
+            onBackClick = { currentScreen = BudzetkoScreen.Settings },
+            onHomeClick = { currentScreen = BudzetkoScreen.Dashboard },
+            onTransactionsClick = { openTransactions() },
+            onMonthTransactionsClick = { month, year -> openTransactions(month, year) },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = true
+            },
+            onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics },
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
         )
 
         BudzetkoScreen.Transactions -> TransactionsScreen(
@@ -155,7 +208,9 @@ fun BudzetkoApp() {
             },
             onProfileClick = { currentScreen = BudzetkoScreen.Profile },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics },
-            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            initialMonth = transactionsInitialMonth,
+            initialYear = transactionsInitialYear
         )
 
         BudzetkoScreen.Profile -> ProfileScreen(
@@ -179,7 +234,7 @@ fun BudzetkoApp() {
             onSaved = {
                 expenseBeingEdited = null
                 isAddExpenseDialogOpen = false
-                currentScreen = BudzetkoScreen.Transactions
+                openTransactions()
             },
             onAddCategoryClick = {
                 expenseBeingEdited = null
@@ -196,6 +251,7 @@ private enum class BudzetkoScreen {
     Analytics,
     Categories,
     Settings,
+    BudgetHistory,
     Transactions,
     Profile
 }
