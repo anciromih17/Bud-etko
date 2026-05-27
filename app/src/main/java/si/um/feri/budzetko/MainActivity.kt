@@ -1,5 +1,6 @@
 package si.um.feri.budzetko
 
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -51,6 +52,7 @@ import si.um.feri.budzetko.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
     private var onProfileImageSelected: ((String) -> Unit)? = null
+    private var onCameraPermissionResult: ((Boolean) -> Unit)? = null
     private val profileImagePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching {
@@ -61,6 +63,10 @@ class MainActivity : ComponentActivity() {
             }
             onProfileImageSelected?.invoke(uri.toString())
         }
+    }
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        onCameraPermissionResult?.invoke(isGranted)
+        onCameraPermissionResult = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,6 +105,10 @@ class MainActivity : ComponentActivity() {
                         onPickProfileImage = { onSelected ->
                             onProfileImageSelected = onSelected
                             profileImagePicker.launch(arrayOf("image/*"))
+                        },
+                        onRequestCameraPermission = { onResult ->
+                            onCameraPermissionResult = onResult
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     )
                 }
@@ -115,7 +125,8 @@ fun BudzetkoApp(
     onCurrencyChange: (AppCurrency) -> Unit = {},
     appThemeMode: AppThemeMode = AppThemeMode.LIGHT,
     onThemeChange: (AppThemeMode) -> Unit = {},
-    onPickProfileImage: (((String) -> Unit) -> Unit) = {}
+    onPickProfileImage: (((String) -> Unit) -> Unit) = {},
+    onRequestCameraPermission: (((Boolean) -> Unit) -> Unit) = { it(false) }
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val database = AppDatabase.getDatabase(context)
@@ -416,7 +427,8 @@ fun BudzetkoApp(
                 isAddExpenseDialogOpen = false
                 categoryViewModel.openCreateDialog()
                 currentScreen = BudzetkoScreen.Categories
-            }
+            },
+            onRequestCameraPermission = onRequestCameraPermission
         )
     }
 }

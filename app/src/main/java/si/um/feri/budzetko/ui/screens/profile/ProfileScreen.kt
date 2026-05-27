@@ -525,7 +525,7 @@ private fun ProfileSettingsCard(
             ProfileInfoRow(
                 icon = Icons.Outlined.CloudSync,
                 title = stringResource(R.string.profile_sync),
-                value = syncUiState.message,
+                value = stringResource(syncUiState.messageResId, *syncUiState.messageArgs.toTypedArray()),
                 onClick = onSyncClick,
                 trailing = {
                     if (syncUiState.status == SyncStatusUi.SYNCING) {

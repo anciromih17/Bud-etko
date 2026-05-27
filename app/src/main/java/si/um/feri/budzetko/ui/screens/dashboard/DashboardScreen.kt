@@ -41,12 +41,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.data.entity.SyncStatus
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
@@ -195,14 +197,14 @@ private fun SummaryCard(
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Dobrodošli!",
+                        text = stringResource(R.string.dashboard_welcome),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = Ink
                     )
                     Spacer(modifier = Modifier.height(22.dp))
                     Text(
-                        text = "Skupni mesečni proračun",
+                        text = stringResource(R.string.dashboard_total_budget),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Medium,
                         color = MutedInk
@@ -227,7 +229,7 @@ private fun SummaryCard(
                         .clip(CircleShape)
                         .background(SoftAccent)
                 ) {
-                    Icon(Icons.Filled.Person, contentDescription = "Profil", tint = Ink, modifier = Modifier.size(30.dp))
+                    Icon(Icons.Filled.Person, contentDescription = stringResource(R.string.profile), tint = Ink, modifier = Modifier.size(30.dp))
                 }
             }
 
@@ -236,14 +238,14 @@ private fun SummaryCard(
                     modifier = Modifier.weight(1f),
                     iconColor = PrimaryAccent,
                     icon = Icons.Outlined.SouthWest,
-                    label = "Porabljeno",
+                    label = stringResource(R.string.dashboard_spent),
                     value = formatCurrencyAmount(uiState.totalSpent)
                 )
                 SummaryMetricCard(
                     modifier = Modifier.weight(1f),
                     iconColor = PrimaryAccent,
                     icon = Icons.Outlined.ArrowOutward,
-                    label = "Na voljo",
+                    label = stringResource(R.string.dashboard_available),
                     value = formatCurrencyAmount(uiState.available)
                 )
             }
@@ -310,7 +312,7 @@ private fun SpendingByCategoryCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Poraba po kategorijah",
+                    text = stringResource(R.string.dashboard_spending_by_category),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
@@ -326,7 +328,7 @@ private fun SpendingByCategoryCard(
 
             val visibleCategories = categorySpending.filter { it.spentAmount > 0.0 }.take(5)
             if (visibleCategories.isEmpty()) {
-                EmptyCardText("Ta mesec še ni porabe po kategorijah.")
+                EmptyCardText(stringResource(R.string.dashboard_empty_category_spending))
             } else {
                 Spacer(modifier = Modifier.height(8.dp))
                 CategoryDonutChart(
@@ -441,14 +443,14 @@ private fun RecentTransactionsCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Nedavne transakcije",
+                    text = stringResource(R.string.dashboard_recent_transactions),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = Ink
                 )
                 Text(
-                    text = "Vse",
+                    text = stringResource(R.string.all),
                     modifier = Modifier.clickable(onClick = onSeeAllClick),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.ExtraBold,
@@ -457,7 +459,7 @@ private fun RecentTransactionsCard(
             }
 
             if (transactions.isEmpty()) {
-                EmptyCardText("Ni še dodanih transakcij.")
+                EmptyCardText(stringResource(R.string.dashboard_empty_transactions))
             } else {
                 transactions.forEach { transaction ->
                     RecentTransactionRow(transaction)
@@ -541,11 +543,23 @@ private fun ExpenseEntity.dateLabel(): String {
         .format(DateFormatter)
 }
 
+@Composable
 private fun monthName(month: Int): String {
-    return listOf(
-        "Januar", "Februar", "Marec", "April", "Maj", "Junij",
-        "Julij", "Avgust", "September", "Oktober", "November", "December"
-    )[month - 1]
+    return when (month) {
+        1 -> stringResource(R.string.month_january)
+        2 -> stringResource(R.string.month_february)
+        3 -> stringResource(R.string.month_march)
+        4 -> stringResource(R.string.month_april)
+        5 -> stringResource(R.string.month_may)
+        6 -> stringResource(R.string.month_june)
+        7 -> stringResource(R.string.month_july)
+        8 -> stringResource(R.string.month_august)
+        9 -> stringResource(R.string.month_september)
+        10 -> stringResource(R.string.month_october)
+        11 -> stringResource(R.string.month_november)
+        12 -> stringResource(R.string.month_december)
+        else -> month.toString()
+    }
 }
 
 private fun Double.formatMoney(): String = "%.2f".format(this)

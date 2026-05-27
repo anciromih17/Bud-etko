@@ -488,7 +488,7 @@ private fun notificationItemsFor(
             id = "sync-${syncUiState.status}",
             icon = Icons.Outlined.CloudOff,
             title = stringResource(R.string.notification_sync_attention),
-            message = syncUiState.message,
+            message = stringResource(syncUiState.messageResId, *syncUiState.messageArgs.toTypedArray()),
             date = stringResource(R.string.notification_recent),
             unread = "sync-${syncUiState.status}" !in readNotificationIds
         )

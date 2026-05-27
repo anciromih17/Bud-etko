@@ -55,12 +55,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.AiSummarySource
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
@@ -251,7 +253,7 @@ private fun AnalyticsMonthSelector(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.ChevronLeft,
-                    contentDescription = "Prejšnji mesec",
+                    contentDescription = stringResource(R.string.budget_month_previous),
                     tint = Ink
                 )
             }
@@ -267,7 +269,7 @@ private fun AnalyticsMonthSelector(
                     color = Ink
                 )
                 Text(
-                    text = "Analitika za izbrani mesec",
+                    text = stringResource(R.string.analytics_selected_month),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = MutedInk
@@ -282,7 +284,7 @@ private fun AnalyticsMonthSelector(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = "Naslednji mesec",
+                    contentDescription = stringResource(R.string.budget_month_next),
                     tint = Ink
                 )
             }
@@ -298,13 +300,13 @@ private fun AnalyticsHeader(onProfileClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Analitika",
+                text = stringResource(R.string.analytics_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
             )
             Text(
-                text = "Pregled porabe po kategorijah",
+                text = stringResource(R.string.analytics_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MutedInk
@@ -317,7 +319,7 @@ private fun AnalyticsHeader(onProfileClick: () -> Unit) {
                 .clip(CircleShape)
                 .background(SoftAccent)
         ) {
-            Icon(Icons.Filled.Person, contentDescription = "Profil", tint = Ink, modifier = Modifier.size(30.dp))
+            Icon(Icons.Filled.Person, contentDescription = stringResource(R.string.profile), tint = Ink, modifier = Modifier.size(30.dp))
         }
     }
 }
@@ -336,17 +338,17 @@ private fun AnalyticsSummaryRow(uiState: DashboardUiState) {
         AnalyticsMetricCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Outlined.ArrowOutward,
-            title = "Poraba",
+            title = stringResource(R.string.analytics_spending),
             value = formatCurrencyAmount(uiState.totalSpent),
-            subtitle = "${budgetUsage.toInt()}% proračuna",
+            subtitle = stringResource(R.string.analytics_budget_percent, budgetUsage.toInt()),
             iconBackground = PrimaryAccent
         )
         AnalyticsMetricCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Outlined.ErrorOutline,
-            title = "Opozorila",
+            title = stringResource(R.string.analytics_alerts),
             value = warningCount.toString(),
-            subtitle = "$overLimitCount preseženih, $nearLimitCount blizu",
+            subtitle = stringResource(R.string.analytics_alert_counts, overLimitCount, nearLimitCount),
             iconBackground = if (warningCount > 0) DangerColor else SoftAccent,
             iconTint = if (warningCount > 0) Color.White else Ink
         )
@@ -432,7 +434,7 @@ private fun LimitAlertsCard(categories: List<DashboardCategorySpending>) {
                         color = Ink
                     )
                     Text(
-                        text = "Preglej limite in po potrebi prilagodi proračun.",
+                        text = stringResource(R.string.analytics_review_limits),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MutedInk
@@ -444,14 +446,14 @@ private fun LimitAlertsCard(categories: List<DashboardCategorySpending>) {
                 AlertCategoryLine(
                     category = category,
                     color = DangerColor,
-                    message = "Preseženo za ${formatCurrencyAmount(category.spentAmount - (category.limitAmount ?: 0.0))}"
+                    message = stringResource(R.string.analytics_exceeded_by, formatCurrencyAmount(category.spentAmount - (category.limitAmount ?: 0.0)))
                 )
             }
             nearLimitCategories.take(2).forEach { category ->
                 AlertCategoryLine(
                     category = category,
                     color = WarningColor,
-                    message = "Na voljo še ${formatCurrencyAmount(((category.limitAmount ?: 0.0) - category.spentAmount).coerceAtLeast(0.0))}"
+                    message = stringResource(R.string.analytics_available_left, formatCurrencyAmount(((category.limitAmount ?: 0.0) - category.spentAmount).coerceAtLeast(0.0)))
                 )
             }
         }
@@ -505,7 +507,7 @@ private fun CategoryDistributionCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Porazdelitev po kategorijah",
+                    text = stringResource(R.string.analytics_distribution),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
@@ -513,7 +515,7 @@ private fun CategoryDistributionCard(
                 )
                 Icon(
                     imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Uredi kategorije",
+                    contentDescription = stringResource(R.string.settings_category_settings),
                     tint = Ink,
                     modifier = Modifier
                         .size(22.dp)
@@ -522,7 +524,7 @@ private fun CategoryDistributionCard(
             }
 
             if (visibleCategories.isEmpty()) {
-                EmptyText("Za analitiko najprej dodaj kategorije, budget in stroške.")
+                EmptyText(stringResource(R.string.analytics_empty_distribution))
             } else {
                 visibleCategories.forEach { category ->
                     AnalyticsCategoryRow(
@@ -584,10 +586,10 @@ private fun AnalyticsCategoryRow(
         )
         Text(
             text = when {
-                limit <= 0.0 -> "Limit še ni nastavljen"
-                progress >= 1f -> "Limit presežen za ${formatCurrencyAmount(category.spentAmount - limit)}"
-                progress >= 0.8f -> "Blizu limita · na voljo še ${formatCurrencyAmount((limit - category.spentAmount).coerceAtLeast(0.0))}"
-                else -> "${(progress * 100).toInt()}% porabljeno"
+                limit <= 0.0 -> stringResource(R.string.analytics_limit_not_set)
+                progress >= 1f -> stringResource(R.string.analytics_limit_exceeded_by, formatCurrencyAmount(category.spentAmount - limit))
+                progress >= 0.8f -> stringResource(R.string.analytics_near_limit_left, formatCurrencyAmount((limit - category.spentAmount).coerceAtLeast(0.0)))
+                else -> stringResource(R.string.analytics_percent_spent, (progress * 100).toInt())
             },
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Medium,
@@ -638,13 +640,13 @@ private fun AiRecommendationCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "AI Priporočilo",
+                        text = stringResource(R.string.notification_ai_recommendation),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = Ink
                     )
                     Text(
-                        text = "Kliknite gumb, da generirate vaše poročilo in priporočila.",
+                        text = stringResource(R.string.analytics_ai_hint),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MutedInk
@@ -661,7 +663,7 @@ private fun AiRecommendationCard(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
-                            contentDescription = "Skrij priporočilo",
+                            contentDescription = stringResource(R.string.analytics_hide_recommendation),
                             tint = Ink,
                             modifier = Modifier.size(20.dp)
                         )
@@ -700,8 +702,8 @@ private fun AiRecommendationCard(
 @Composable
 private fun AiRecommendationSourceLabel(source: AiSummarySource?) {
     val text = when (source) {
-        AiSummarySource.GEMINI -> "Vir: Gemini"
-        AiSummarySource.FALLBACK -> "Gemini ni bil dosegljiv, uporabljen je lokalni povzetek."
+        AiSummarySource.GEMINI -> stringResource(R.string.ai_source_gemini)
+        AiSummarySource.FALLBACK -> stringResource(R.string.ai_source_fallback)
         null -> return
     }
     Surface(
@@ -778,13 +780,13 @@ private fun SpendingChartCard(categories: List<DashboardCategorySpending>) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Graf porabe",
+                text = stringResource(R.string.analytics_spending_chart),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
             )
             if (bars.isEmpty()) {
-                EmptyText("Graf se prikaže, ko dodaš prve stroške.")
+                EmptyText(stringResource(R.string.analytics_empty_chart))
             } else {
                 SpendingBarChart(
                     categories = bars,
@@ -881,14 +883,15 @@ private fun analyticsCategoryColor(category: DashboardCategorySpending): Color {
 private val DashboardCategorySpending.hasLimit: Boolean
     get() = limitAmount != null && limitAmount > 0.0
 
+@Composable
 private fun alertTitle(overLimitCount: Int, nearLimitCount: Int): String {
     return when {
         overLimitCount > 0 && nearLimitCount > 0 ->
-            "$overLimitCount preseženih limitov, $nearLimitCount blizu limita"
+            stringResource(R.string.analytics_alert_title_both, overLimitCount, nearLimitCount)
         overLimitCount > 0 ->
-            "$overLimitCount preseženih limitov"
+            stringResource(R.string.analytics_alert_title_over, overLimitCount)
         else ->
-            "$nearLimitCount kategorij blizu limita"
+            stringResource(R.string.analytics_alert_title_near, nearLimitCount)
     }
 }
 
@@ -902,20 +905,21 @@ private fun nextMonth(month: Int, year: Int): Pair<Int, Int> {
     return if (month == 12) 1 to year + 1 else month + 1 to year
 }
 
+@Composable
 private fun monthYearLabel(month: Int, year: Int): String {
     val monthName = when (month) {
-        1 -> "Januar"
-        2 -> "Februar"
-        3 -> "Marec"
-        4 -> "April"
-        5 -> "Maj"
-        6 -> "Junij"
-        7 -> "Julij"
-        8 -> "Avgust"
-        9 -> "September"
-        10 -> "Oktober"
-        11 -> "November"
-        12 -> "December"
+        1 -> stringResource(R.string.month_january)
+        2 -> stringResource(R.string.month_february)
+        3 -> stringResource(R.string.month_march)
+        4 -> stringResource(R.string.month_april)
+        5 -> stringResource(R.string.month_may)
+        6 -> stringResource(R.string.month_june)
+        7 -> stringResource(R.string.month_july)
+        8 -> stringResource(R.string.month_august)
+        9 -> stringResource(R.string.month_september)
+        10 -> stringResource(R.string.month_october)
+        11 -> stringResource(R.string.month_november)
+        12 -> stringResource(R.string.month_december)
         else -> ""
     }
     return "$monthName $year"

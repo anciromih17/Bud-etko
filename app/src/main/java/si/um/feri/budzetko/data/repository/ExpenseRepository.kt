@@ -19,7 +19,8 @@ class ExpenseRepository(
         date: Long,
         description: String,
         userId: String,
-        categoryId: Long
+        categoryId: Long,
+        receiptImagePath: String? = null
     ): Long {
         val expense = ExpenseEntity(
             amount = amount,
@@ -27,6 +28,7 @@ class ExpenseRepository(
             description = description,
             userId = userId,
             categoryId = categoryId,
+            receiptImagePath = receiptImagePath,
             syncStatus = SyncStatus.PENDING,
             updatedAt = System.currentTimeMillis()
         )
