@@ -75,6 +75,18 @@ private val PrimaryAccent = BudzetkoPurple
 private val LimeAccent = BudzetkoLime
 private val SoftAccent: Color
     @Composable get() = budzetkoSoftAccent()
+private val CardShadowAmbient: Color
+    @Composable get() = if (MaterialTheme.colorScheme.background == Color(0xFFF3F2FF)) {
+        BudzetkoPurple.copy(alpha = 0.08f)
+    } else {
+        Color.Black.copy(alpha = 0.12f)
+    }
+private val CardShadowSpot: Color
+    @Composable get() = if (MaterialTheme.colorScheme.background == Color(0xFFF3F2FF)) {
+        BudzetkoPurple.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.16f)
+    }
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 @Composable
 fun DashboardScreen(
@@ -168,10 +180,10 @@ private fun SummaryCard(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 10.dp,
+                elevation = 14.dp,
                 shape = RoundedCornerShape(34.dp),
-                ambientColor = Color.Black.copy(alpha = 0.04f),
-                spotColor = Color.Black.copy(alpha = 0.06f)
+                ambientColor = CardShadowAmbient,
+                spotColor = CardShadowSpot
             ),
         shape = RoundedCornerShape(34.dp),
         color = CardSurface
@@ -281,7 +293,14 @@ private fun SpendingByCategoryCard(
     categorySpending: List<DashboardCategorySpending>
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(34.dp),
+                ambientColor = CardShadowAmbient,
+                spotColor = CardShadowSpot
+            ),
         shape = RoundedCornerShape(34.dp),
         color = CardSurface
     ) {
@@ -405,7 +424,14 @@ private fun RecentTransactionsCard(
     onSeeAllClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(34.dp),
+                ambientColor = CardShadowAmbient,
+                spotColor = CardShadowSpot
+            ),
         shape = RoundedCornerShape(34.dp),
         color = CardSurface
     ) {
