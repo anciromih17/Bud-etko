@@ -62,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -884,7 +885,7 @@ private fun BudgetDialog(
                     } else {
                         item {
                             MessageText(
-                                message = "Ni še predlaganih limitov. Lahko shraniš samo mesečni proračun ali najprej dodaj kategorije.",
+                                message = stringResource(R.string.no_suggested_limits),
                                 color = MutedInk
                             )
                         }
@@ -998,7 +999,7 @@ private fun BudgetLimitCard(
                         color = Ink
                     )
                     Text(
-                        text = "Mesečni limit: ${formatCurrencyAmount(draft.limitAmount)}",
+                        text = stringResource(R.string.monthly_limit_with_value, formatCurrencyAmount(draft.limitAmount)),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MutedInk
                     )
@@ -1095,12 +1096,8 @@ private fun MessageText(message: String, color: Color) {
     )
 }
 
-private fun monthName(month: Int): String {
-    return listOf(
-        "Januar", "Februar", "Marec", "April", "Maj", "Junij",
-        "Julij", "Avgust", "September", "Oktober", "November", "December"
-    )[month - 1]
-}
+@Composable
+private fun monthName(month: Int): String = stringArrayResource(R.array.month_names)[month - 1]
 
 private fun Double.formatMoney(): String = "%.2f".format(this)
 

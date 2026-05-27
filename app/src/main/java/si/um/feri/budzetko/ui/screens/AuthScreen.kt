@@ -2,7 +2,14 @@ package si.um.feri.budzetko.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -11,10 +18,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -22,6 +36,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import si.um.feri.budzetko.R
 import si.um.feri.budzetko.viewmodel.AuthViewModel
 
 private enum class AuthMode {
@@ -35,27 +50,15 @@ fun AuthScreen(
     authViewModel: AuthViewModel = viewModel(),
     onAuthSuccess: () -> Unit
 ) {
-
     val currentUser by authViewModel.currentUser.collectAsState()
     val error by authViewModel.error.collectAsState()
     val message by authViewModel.message.collectAsState()
     val isLoading by authViewModel.isLoading.collectAsState()
 
-    var mode by remember {
-        mutableStateOf(AuthMode.LOGIN)
-    }
-
-    var email by remember {
-        mutableStateOf("")
-    }
-
-    var username by remember {
-        mutableStateOf("")
-    }
-
-    var password by remember {
-        mutableStateOf("")
-    }
+    var mode by remember { mutableStateOf(AuthMode.LOGIN) }
+    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
@@ -68,19 +71,16 @@ fun AuthScreen(
             .fillMaxSize()
             .background(Color(0xFFF8F3E8))
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 40.dp),
-
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Spacer(modifier = Modifier.height(90.dp))
 
             Text(
-                text = "Budžetko",
+                text = stringResource(R.string.app_name),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
                 color = Color.Black
@@ -90,15 +90,13 @@ fun AuthScreen(
 
             Text(
                 text = when (mode) {
-                    AuthMode.LOGIN -> "Prijavi se"
-                    AuthMode.REGISTER -> "Registriraj se"
-                    AuthMode.RESET -> "Ponastavi geslo"
+                    AuthMode.LOGIN -> stringResource(R.string.sign_in_title)
+                    AuthMode.REGISTER -> stringResource(R.string.register_title)
+                    AuthMode.RESET -> stringResource(R.string.reset_password_title)
                 },
-
                 fontWeight = FontWeight.Bold,
                 fontSize = 34.sp,
                 color = Color.Black,
-
                 modifier = Modifier.align(Alignment.Start)
             )
 
@@ -106,35 +104,27 @@ fun AuthScreen(
 
             AuthField(
                 value = email,
-                onValueChange = {
-                    email = it
-                },
-                label = "Email"
+                onValueChange = { email = it },
+                label = stringResource(R.string.email)
             )
 
             if (mode == AuthMode.REGISTER) {
-
                 Spacer(modifier = Modifier.height(14.dp))
 
                 AuthField(
                     value = username,
-                    onValueChange = {
-                        username = it
-                    },
-                    label = "Uporabniško ime"
+                    onValueChange = { username = it },
+                    label = stringResource(R.string.username)
                 )
             }
 
             if (mode != AuthMode.RESET) {
-
                 Spacer(modifier = Modifier.height(14.dp))
 
                 AuthField(
                     value = password,
-                    onValueChange = {
-                        password = it
-                    },
-                    label = "Geslo",
+                    onValueChange = { password = it },
+                    label = stringResource(R.string.password),
                     isPassword = true
                 )
             }
@@ -143,59 +133,33 @@ fun AuthScreen(
 
             Button(
                 onClick = {
-
                     when (mode) {
-
-                        AuthMode.LOGIN -> {
-
-                            authViewModel.login(
-                                email = email,
-                                password = password
-                            )
-                        }
-
-                        AuthMode.REGISTER -> {
-
-                            authViewModel.register(
-                                email = email,
-                                username = username,
-                                password = password
-                            )
-                        }
-
-                        AuthMode.RESET -> {
-                            authViewModel.resetPassword(email)
-                        }
+                        AuthMode.LOGIN -> authViewModel.login(email = email, password = password)
+                        AuthMode.REGISTER -> authViewModel.register(email = email, username = username, password = password)
+                        AuthMode.RESET -> authViewModel.resetPassword(email)
                     }
                 },
-
                 enabled = !isLoading,
-
                 modifier = Modifier
                     .width(160.dp)
                     .height(48.dp)
                     .align(Alignment.Start),
-
                 shape = RoundedCornerShape(14.dp),
-
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF1E1E1E),
                     contentColor = Color.White
                 )
             ) {
-
                 Text(
-                    text =
-                        if (isLoading) {
-                            "Počakaj..."
-                        } else {
-                            when (mode) {
-                                AuthMode.LOGIN -> "Prijavi"
-                                AuthMode.REGISTER -> "Registriraj"
-                                AuthMode.RESET -> "Pošlji"
-                            }
-                        },
-
+                    text = if (isLoading) {
+                        stringResource(R.string.loading)
+                    } else {
+                        when (mode) {
+                            AuthMode.LOGIN -> stringResource(R.string.sign_in_action)
+                            AuthMode.REGISTER -> stringResource(R.string.register_action)
+                            AuthMode.RESET -> stringResource(R.string.send_action)
+                        }
+                    },
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -203,18 +167,13 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             if (mode == AuthMode.LOGIN) {
-
                 Text(
-                    text = "Pozabljeno geslo",
-
+                    text = stringResource(R.string.forgot_password),
                     fontSize = 12.sp,
                     color = Color.Gray,
-
                     modifier = Modifier
                         .align(Alignment.Start)
-                        .clickable {
-                            mode = AuthMode.RESET
-                        }
+                        .clickable { mode = AuthMode.RESET }
                 )
             }
 
@@ -222,30 +181,23 @@ fun AuthScreen(
 
             Text(
                 text = when (mode) {
-                    AuthMode.LOGIN -> "Registriraj se"
-                    AuthMode.REGISTER -> "Vpiši se"
-                    AuthMode.RESET -> "Vpiši se"
+                    AuthMode.LOGIN -> stringResource(R.string.switch_to_register)
+                    AuthMode.REGISTER -> stringResource(R.string.switch_to_login)
+                    AuthMode.RESET -> stringResource(R.string.switch_to_login)
                 },
-
                 color = Color.Gray,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-
                 modifier = Modifier.clickable {
-
                     mode = when (mode) {
-
                         AuthMode.LOGIN -> AuthMode.REGISTER
-
                         AuthMode.REGISTER -> AuthMode.LOGIN
-
                         AuthMode.RESET -> AuthMode.LOGIN
                     }
                 }
             )
 
             error?.let {
-
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
@@ -256,7 +208,6 @@ fun AuthScreen(
             }
 
             message?.let {
-
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
@@ -276,47 +227,33 @@ private fun AuthField(
     label: String,
     isPassword: Boolean = false
 ) {
-
     OutlinedTextField(
         value = value,
-
         onValueChange = onValueChange,
-
         label = {
             Text(
                 text = label,
                 color = Color.Black
             )
         },
-
         singleLine = true,
-
-        visualTransformation =
-            if (isPassword) {
-                PasswordVisualTransformation()
-            } else {
-                VisualTransformation.None
-            },
-
-        keyboardOptions =
-            if (isPassword) {
-
-                KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    autoCorrectEnabled = false
-                )
-
-            } else {
-
-                KeyboardOptions.Default
-            },
-
+        visualTransformation = if (isPassword) {
+            PasswordVisualTransformation()
+        } else {
+            VisualTransformation.None
+        },
+        keyboardOptions = if (isPassword) {
+            KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                autoCorrectEnabled = false
+            )
+        } else {
+            KeyboardOptions.Default
+        },
         modifier = Modifier
             .fillMaxWidth()
             .height(62.dp),
-
         shape = RoundedCornerShape(14.dp),
-
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Black,
             unfocusedBorderColor = Color.Black,

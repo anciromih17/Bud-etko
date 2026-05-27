@@ -107,4 +107,109 @@
     <string name="confirm">Potrdi</string>
     <string name="budget_month_previous">Prejšnji mesec</string>
     <string name="budget_month_next">Naslednji mesec</string>
+    <string name="welcome">Dobrodošli!</string>
+    <string name="total_monthly_budget">Skupni mesečni proračun</string>
+    <string name="spent">Porabljeno</string>
+    <string name="available">Na voljo</string>
+    <string name="spending_by_category">Poraba po kategorijah</string>
+    <string name="recent_transactions">Nedavne transakcije</string>
+    <string name="see_all">Vse</string>
+    <string name="empty_category_spending">Ta mesec še ni porabe po kategorijah.</string>
+    <string name="empty_recent_transactions">Ni še dodanih transakcij.</string>
+    <string name="add_expense_title">Dodaj nov strošek</string>
+    <string name="expense_description_hint">Npr. Nakup v trgovini</string>
+    <string name="category">Kategorija</string>
+    <string name="notes_optional">Dodatne informacije...</string>
+    <string name="scan_receipt">Skeniraj račun</string>
+    <string name="select">Izberi</string>
+    <string name="amount_label">Znesek (%1$s)</string>
+    <string name="description">Opis</string>
+    <string name="date">Datum</string>
+    <string name="save_changes">Shrani spremembe</string>
+    <string name="invalid_amount">Vnesi veljaven znesek.</string>
+    <string name="missing_expense_description">Vnesi opis stroška.</string>
+    <string name="missing_category">Izberi kategorijo.</string>
+    <string name="invalid_date">Datum vnesi v obliki dd.MM.yyyy.</string>
+    <string name="analytics_title">Analitika</string>
+    <string name="analytics_subtitle">Pregled porabe po kategorijah</string>
+    <string name="analytics_for_selected_month">Analitika za izbrani mesec</string>
+    <string name="warnings">Opozorila</string>
+    <string name="budget_usage_percent">%1$d%% proračuna</string>
+    <string name="warnings_summary">%1$d preseženih, %2$d blizu</string>
+    <string name="review_limits_hint">Preglej limite in po potrebi prilagodi proračun.</string>
+    <string name="over_by">Preseženo za %1$s</string>
+    <string name="remaining_amount">Na voljo še %1$s</string>
+    <string name="category_distribution">Porazdelitev po kategorijah</string>
+    <string name="ai_recommendation_title">AI priporočilo</string>
+    <string name="ai_recommendation_hint">Kliknite gumb, da generirate vaše poročilo in priporočila.</string>
+    <string name="spending_chart">Graf porabe</string>
+    <string name="analytics_empty_distribution">Za analitiko najprej dodaj kategorije, budget in stroške.</string>
+    <string name="limit_not_set">Limit še ni nastavljen</string>
+    <string name="limit_exceeded_by">Limit presežen za %1$s</string>
+    <string name="near_limit_remaining">Blizu limita · na voljo še %1$s</string>
+    <string name="spent_percent">%1$d%% porabljeno</string>
+    <string name="hide_recommendation">Skrij priporočilo</string>
+    <string name="spending_chart_empty">Graf se prikaže, ko dodaš prve stroške.</string>
+    <string name="alert_title_over_and_near">%1$d preseženih limitov, %2$d blizu limita</string>
+    <string name="alert_title_over">%1$d preseženih limitov</string>
+    <string name="alert_title_near">%1$d kategorij blizu limita</string>
+    <string name="ai_source_gemini">Vir: Gemini</string>
+    <string name="ai_source_fallback">Gemini ni bil dosegljiv, uporabljen je lokalni povzetek.</string>
+    <string name="transactions_title">Transakcije</string>
+    <string name="transactions_subtitle">Pregled vseh stroškov</string>
+    <string name="total_spent">Skupaj porabljeno</string>
+    <string name="search_hint">Išči...</string>
+    <string name="filters">Filtri</string>
+    <string name="sort">Razvrsti</string>
+    <string name="sort_newest">Najnovejše</string>
+    <string name="sort_oldest">Najstarejše</string>
+    <string name="sort_amount_high">Najvišji znesek</string>
+    <string name="sort_amount_low">Najnižji znesek</string>
+    <string name="all_months">Vsi meseci</string>
+    <string name="all_categories">Vse</string>
+    <string name="edit">Uredi</string>
+    <string name="empty_expenses">Ni še dodanih stroškov.</string>
+    <string name="budget_history_title">Zgodovina proračunov</string>
+    <string name="budget_history_subtitle">Pregled mesecev in AI povzetkov</string>
+    <string name="budget_history_search_hint">Išči mesec ali AI povzetek...</string>
+    <string name="filter">Filter</string>
+    <string name="spent_value">Porabljeno: %1$s</string>
+    <string name="budget">Proračun</string>
+    <string name="remaining">Preostanek</string>
+    <string name="ai_summary">AI povzetek</string>
+    <string name="ai_summary_missing">Za ta mesec AI povzetek še ni shranjen.</string>
+    <string name="show_expenses">Prikaži stroške</string>
+    <string name="empty_budget_history">Zgodovina je trenutno prazna. Ko shraniš mesečni proračun, se bo prikazal tukaj.</string>
+    <string name="sign_in_title">Prijavi se</string>
+    <string name="register_title">Registriraj se</string>
+    <string name="reset_password_title">Ponastavi geslo</string>
+    <string name="email">Email</string>
+    <string name="username">Uporabniško ime</string>
+    <string name="loading">Počakaj...</string>
+    <string name="sign_in_action">Prijavi</string>
+    <string name="register_action">Registriraj</string>
+    <string name="send_action">Pošlji</string>
+    <string name="forgot_password">Pozabljeno geslo</string>
+    <string name="switch_to_register">Registriraj se</string>
+    <string name="switch_to_login">Vpiši se</string>
+    <string name="auth_tagline">Pametno spremljaj svoje finance.</string>
+    <string name="auth_login_hint">Dobrodošla nazaj. Nadaljuj s svojim proračunom.</string>
+    <string name="auth_register_hint">Ustvari račun in začni urejati svoje stroške.</string>
+    <string name="auth_reset_hint">Vnesi email in poslali ti bomo povezavo za ponastavitev.</string>
+    <string name="no_suggested_limits">Ni še predlaganih limitov. Lahko shraniš samo mesečni proračun ali najprej dodaj kategorije.</string>
+    <string name="monthly_limit_with_value">Mesečni limit: %1$s</string>
+    <string-array name="month_names">
+        <item>Januar</item>
+        <item>Februar</item>
+        <item>Marec</item>
+        <item>April</item>
+        <item>Maj</item>
+        <item>Junij</item>
+        <item>Julij</item>
+        <item>Avgust</item>
+        <item>September</item>
+        <item>Oktober</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
 </resources>

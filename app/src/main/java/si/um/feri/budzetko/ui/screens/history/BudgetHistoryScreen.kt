@@ -47,8 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import si.um.feri.budzetko.R
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
 import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
@@ -60,7 +63,6 @@ import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
 import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.BudgetHistoryItem
 import si.um.feri.budzetko.viewmodel.BudgetHistoryViewModel
-import si.um.feri.budzetko.viewmodel.monthName
 
 private val CardSurface: Color
     @Composable get() = budzetkoSurface()
@@ -158,7 +160,7 @@ private fun BudgetHistoryHeader(onBackClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Outlined.ArrowBackIosNew,
-                contentDescription = "Nazaj",
+                contentDescription = stringResource(R.string.back),
                 tint = Ink,
                 modifier = Modifier.size(20.dp)
             )
@@ -166,13 +168,13 @@ private fun BudgetHistoryHeader(onBackClick: () -> Unit) {
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Zgodovina proračunov",
+                text = stringResource(R.string.budget_history_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = Ink
             )
             Text(
-                text = "Pregled mesecev in AI povzetkov",
+                text = stringResource(R.string.budget_history_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MutedInk
@@ -192,7 +194,7 @@ private fun BudgetHistorySearch(
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
-            placeholder = { Text("Išči mesec ali AI povzetek...") },
+            placeholder = { Text(stringResource(R.string.budget_history_search_hint)) },
             singleLine = true,
             shape = RoundedCornerShape(22.dp),
             modifier = Modifier.weight(1f)
@@ -202,7 +204,7 @@ private fun BudgetHistorySearch(
             onClick = {},
             modifier = Modifier.size(42.dp)
         ) {
-            Icon(Icons.Outlined.FilterList, contentDescription = "Filter", modifier = Modifier.size(28.dp), tint = Ink)
+            Icon(Icons.Outlined.FilterList, contentDescription = stringResource(R.string.filter), modifier = Modifier.size(28.dp), tint = Ink)
         }
     }
 }
@@ -260,7 +262,7 @@ private fun BudgetHistoryMonthCard(
                         color = Ink
                     )
                     Text(
-                        text = "Porabljeno: ${formatCurrencyAmount(item.spent)}",
+                        text = stringResource(R.string.spent_value, formatCurrencyAmount(item.spent)),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MutedInk
@@ -312,12 +314,12 @@ private fun BudgetHistoryDetails(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HistoryStatPill(
                 modifier = Modifier.weight(1f),
-                title = "Proračun",
+                title = stringResource(R.string.budget),
                 value = formatCurrencyAmount(item.income)
             )
             HistoryStatPill(
                 modifier = Modifier.weight(1f),
-                title = "Preostanek",
+                title = stringResource(R.string.remaining),
                 value = formatCurrencyAmount(item.remaining)
             )
         }
@@ -344,13 +346,13 @@ private fun BudgetHistoryDetails(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "AI povzetek",
+                        text = stringResource(R.string.ai_summary),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = Ink
                     )
                     Text(
-                        text = item.aiSummary ?: "Za ta mesec AI povzetek še ni shranjen.",
+                        text = item.aiSummary ?: stringResource(R.string.ai_summary_missing),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = MutedInk
@@ -369,7 +371,7 @@ private fun BudgetHistoryDetails(
                 contentColor = Color.White
             )
         ) {
-            Text(text = "Prikaži stroške", fontWeight = FontWeight.ExtraBold)
+            Text(text = stringResource(R.string.show_expenses), fontWeight = FontWeight.ExtraBold)
         }
     }
 }
@@ -410,7 +412,7 @@ private fun EmptyHistoryCard() {
         color = CardSurface
     ) {
         Text(
-            text = "Zgodovina je trenutno prazna. Ko shraniš mesečni proračun, se bo prikazal tukaj.",
+            text = stringResource(R.string.empty_budget_history),
             modifier = Modifier.padding(20.dp),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
@@ -420,3 +422,6 @@ private fun EmptyHistoryCard() {
 }
 
 private fun Double.formatMoney(): String = "%.2f".format(this)
+
+@Composable
+private fun monthName(month: Int): String = stringArrayResource(R.array.month_names)[month - 1]

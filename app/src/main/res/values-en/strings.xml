@@ -107,4 +107,109 @@
     <string name="confirm">Confirm</string>
     <string name="budget_month_previous">Previous month</string>
     <string name="budget_month_next">Next month</string>
+    <string name="welcome">Welcome!</string>
+    <string name="total_monthly_budget">Total monthly budget</string>
+    <string name="spent">Spent</string>
+    <string name="available">Available</string>
+    <string name="spending_by_category">Spending by category</string>
+    <string name="recent_transactions">Recent transactions</string>
+    <string name="see_all">All</string>
+    <string name="empty_category_spending">No category spending this month yet.</string>
+    <string name="empty_recent_transactions">No transactions added yet.</string>
+    <string name="add_expense_title">Add new expense</string>
+    <string name="expense_description_hint">E.g. grocery shopping</string>
+    <string name="category">Category</string>
+    <string name="notes_optional">Additional information...</string>
+    <string name="scan_receipt">Scan receipt</string>
+    <string name="select">Select</string>
+    <string name="amount_label">Amount (%1$s)</string>
+    <string name="description">Description</string>
+    <string name="date">Date</string>
+    <string name="save_changes">Save changes</string>
+    <string name="invalid_amount">Enter a valid amount.</string>
+    <string name="missing_expense_description">Enter an expense description.</string>
+    <string name="missing_category">Choose a category.</string>
+    <string name="invalid_date">Enter the date in dd.MM.yyyy format.</string>
+    <string name="analytics_title">Analytics</string>
+    <string name="analytics_subtitle">Category spending overview</string>
+    <string name="analytics_for_selected_month">Analytics for selected month</string>
+    <string name="warnings">Warnings</string>
+    <string name="budget_usage_percent">%1$d%% of budget</string>
+    <string name="warnings_summary">%1$d exceeded, %2$d near</string>
+    <string name="review_limits_hint">Review limits and adjust the budget if needed.</string>
+    <string name="over_by">Over by %1$s</string>
+    <string name="remaining_amount">%1$s left</string>
+    <string name="category_distribution">Category distribution</string>
+    <string name="ai_recommendation_title">AI recommendation</string>
+    <string name="ai_recommendation_hint">Tap the button to generate your report and recommendations.</string>
+    <string name="spending_chart">Spending chart</string>
+    <string name="analytics_empty_distribution">Add categories, a budget and expenses first to see analytics.</string>
+    <string name="limit_not_set">Limit is not set yet</string>
+    <string name="limit_exceeded_by">Limit exceeded by %1$s</string>
+    <string name="near_limit_remaining">Near limit · %1$s left</string>
+    <string name="spent_percent">%1$d%% spent</string>
+    <string name="hide_recommendation">Hide recommendation</string>
+    <string name="spending_chart_empty">The chart appears after you add your first expenses.</string>
+    <string name="alert_title_over_and_near">%1$d exceeded limits, %2$d near limit</string>
+    <string name="alert_title_over">%1$d exceeded limits</string>
+    <string name="alert_title_near">%1$d categories near limit</string>
+    <string name="ai_source_gemini">Source: Gemini</string>
+    <string name="ai_source_fallback">Gemini was unavailable, so a local summary was used.</string>
+    <string name="transactions_title">Transactions</string>
+    <string name="transactions_subtitle">Overview of all expenses</string>
+    <string name="total_spent">Total spent</string>
+    <string name="search_hint">Search...</string>
+    <string name="filters">Filters</string>
+    <string name="sort">Sort</string>
+    <string name="sort_newest">Newest</string>
+    <string name="sort_oldest">Oldest</string>
+    <string name="sort_amount_high">Highest amount</string>
+    <string name="sort_amount_low">Lowest amount</string>
+    <string name="all_months">All months</string>
+    <string name="all_categories">All</string>
+    <string name="edit">Edit</string>
+    <string name="empty_expenses">No expenses added yet.</string>
+    <string name="budget_history_title">Budget history</string>
+    <string name="budget_history_subtitle">Monthly overview and AI summaries</string>
+    <string name="budget_history_search_hint">Search month or AI summary...</string>
+    <string name="filter">Filter</string>
+    <string name="spent_value">Spent: %1$s</string>
+    <string name="budget">Budget</string>
+    <string name="remaining">Remaining</string>
+    <string name="ai_summary">AI summary</string>
+    <string name="ai_summary_missing">No AI summary has been saved for this month yet.</string>
+    <string name="show_expenses">Show expenses</string>
+    <string name="empty_budget_history">Budget history is empty for now. Saved monthly budgets will appear here.</string>
+    <string name="sign_in_title">Sign in</string>
+    <string name="register_title">Register</string>
+    <string name="reset_password_title">Reset password</string>
+    <string name="email">Email</string>
+    <string name="username">Username</string>
+    <string name="loading">Please wait...</string>
+    <string name="sign_in_action">Sign in</string>
+    <string name="register_action">Register</string>
+    <string name="send_action">Send</string>
+    <string name="forgot_password">Forgot password</string>
+    <string name="switch_to_register">Register</string>
+    <string name="switch_to_login">Sign in</string>
+    <string name="auth_tagline">Track your money with clarity.</string>
+    <string name="auth_login_hint">Welcome back. Continue with your budget.</string>
+    <string name="auth_register_hint">Create an account and start organizing expenses.</string>
+    <string name="auth_reset_hint">Enter your email and we will send a reset link.</string>
+    <string name="no_suggested_limits">No suggested limits yet. You can save only the monthly budget or add categories first.</string>
+    <string name="monthly_limit_with_value">Monthly limit: %1$s</string>
+    <string-array name="month_names">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
 </resources>

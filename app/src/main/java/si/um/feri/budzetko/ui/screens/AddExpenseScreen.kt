@@ -56,8 +56,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import si.um.feri.budzetko.R
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import java.time.Instant
@@ -115,6 +117,10 @@ fun AddExpenseScreen(
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isDatePickerOpen by remember { mutableStateOf(false) }
+    val invalidAmountMessage = stringResource(R.string.invalid_amount)
+    val missingDescriptionMessage = stringResource(R.string.missing_expense_description)
+    val missingCategoryMessage = stringResource(R.string.missing_category)
+    val invalidDateMessage = stringResource(R.string.invalid_date)
 
     LaunchedEffect(expenseToEdit?.id, categories, selectedCurrency) {
         if (expenseToEdit == null) {
@@ -209,16 +215,16 @@ fun AddExpenseScreen(
 
                                 when {
                                     parsedAmount == null || parsedAmount <= 0.0 ->
-                                        errorMessage = "Vnesi veljaven znesek."
+                                        errorMessage = invalidAmountMessage
 
                                     description.isBlank() ->
-                                        errorMessage = "Vnesi opis stroška."
+                                        errorMessage = missingDescriptionMessage
 
                                     categoryId == null ->
-                                        errorMessage = "Izberi kategorijo."
+                                        errorMessage = missingCategoryMessage
 
                                     parsedDate == null ->
-                                        errorMessage = "Datum vnesi v obliki dd.MM.yyyy."
+                                        errorMessage = invalidDateMessage
 
                                     else -> {
                                         val amountInEur = MoneyFormatter.toBaseEur(parsedAmount, selectedCurrency)
@@ -281,12 +287,12 @@ fun AddExpenseScreen(
                         isDatePickerOpen = false
                     }
                 ) {
-                    Text("Izberi")
+                    Text(stringResource(R.string.select))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { isDatePickerOpen = false }) {
-                    Text("Prekliči")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         ) {
@@ -303,13 +309,13 @@ private fun AddExpenseHeader(onClose: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Dobrodošli!",
+                text = stringResource(R.string.welcome),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
             )
             Text(
-                text = "Dodaj nov strošek",
+                text = stringResource(R.string.add_expense_title),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MutedInk
@@ -322,7 +328,7 @@ private fun AddExpenseHeader(onClose: () -> Unit) {
                 .clip(CircleShape)
                 .background(CardSurface)
         ) {
-            Icon(Icons.Outlined.Close, contentDescription = "Zapri", tint = Ink)
+            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close), tint = Ink)
         }
     }
 }
@@ -363,7 +369,7 @@ private fun AddExpenseFormCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Dodaj strošek",
+                text = stringResource(R.string.nav_add_expense),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
@@ -372,7 +378,7 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = amount,
                 onValueChange = onAmountChange,
-                label = { Text("Znesek (${currentCurrencySymbol()})") },
+                label = { Text(stringResource(R.string.amount_label, currentCurrencySymbol())) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -380,14 +386,14 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
-                label = { Text("Opis") },
-                placeholder = { Text("Npr. Nakup v trgovini") },
+                label = { Text(stringResource(R.string.description)) },
+                placeholder = { Text(stringResource(R.string.expense_description_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Text(
-                text = "Kategorija",
+                text = stringResource(R.string.category),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = Ink
@@ -416,7 +422,7 @@ private fun AddExpenseFormCard(
                 OutlinedTextField(
                     value = dateInput,
                     onValueChange = onDateChange,
-                    label = { Text("Datum") },
+                    label = { Text(stringResource(R.string.date)) },
                     leadingIcon = {
                         Icon(Icons.Outlined.CalendarMonth, contentDescription = null)
                     },
@@ -439,8 +445,8 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = note,
                 onValueChange = onNoteChange,
-                label = { Text("Opombe (opcijsko)") },
-                placeholder = { Text("Dodatne informacije...") },
+                label = { Text(stringResource(R.string.notes_optional)) },
+                placeholder = { Text(stringResource(R.string.notes_optional)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -459,7 +465,7 @@ private fun AddExpenseFormCard(
             ) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(19.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = if (isEditing) "Shrani spremembe" else "Dodaj strošek", fontWeight = FontWeight.Bold)
+                Text(text = if (isEditing) stringResource(R.string.save_changes) else stringResource(R.string.nav_add_expense), fontWeight = FontWeight.Bold)
             }
 
             OutlinedButton(
@@ -473,7 +479,7 @@ private fun AddExpenseFormCard(
             ) {
                 Icon(Icons.Outlined.ReceiptLong, contentDescription = null, modifier = Modifier.size(19.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Skeniraj račun", fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.scan_receipt), fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -550,7 +556,7 @@ private fun AddCategoryTile(onClick: () -> Unit) {
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)
             }
-            Text(text = "Dodaj", style = MaterialTheme.typography.bodySmall, color = Ink)
+            Text(text = stringResource(R.string.nav_add), style = MaterialTheme.typography.bodySmall, color = Ink)
         }
     }
 }
