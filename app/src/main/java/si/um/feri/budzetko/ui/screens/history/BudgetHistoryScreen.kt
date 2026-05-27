@@ -50,21 +50,28 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
-import si.um.feri.budzetko.ui.theme.BudzetkoSurface
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.BudgetHistoryItem
 import si.um.feri.budzetko.viewmodel.BudgetHistoryViewModel
 import si.um.feri.budzetko.viewmodel.monthName
 
-private val CardSurface = BudzetkoSurface
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF6D6774)
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 private val PrimaryAccent = BudzetkoPurple
 private val LimeAccent = BudzetkoLime
-private val SoftAccent = Color(0xFFF4F0FF)
+private val SoftAccent: Color
+    @Composable get() = budzetkoSoftAccent()
 private val WarningAccent = Color(0xFFFF7D8A)
 
 @Composable
@@ -83,7 +90,7 @@ fun BudgetHistoryScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = BudzetkoBackground,
+        containerColor = budzetkoBackground(),
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
@@ -97,7 +104,7 @@ fun BudgetHistoryScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BudzetkoBackground)
+                .background(budzetkoBackground())
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 22.dp, top = 28.dp, end = 22.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -253,7 +260,7 @@ private fun BudgetHistoryMonthCard(
                         color = Ink
                     )
                     Text(
-                        text = "Porabljeno: ${item.spent.formatMoney()}€",
+                        text = "Porabljeno: ${formatCurrencyAmount(item.spent)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MutedInk
@@ -306,12 +313,12 @@ private fun BudgetHistoryDetails(
             HistoryStatPill(
                 modifier = Modifier.weight(1f),
                 title = "Proračun",
-                value = "${item.income.formatMoney()}€"
+                value = formatCurrencyAmount(item.income)
             )
             HistoryStatPill(
                 modifier = Modifier.weight(1f),
                 title = "Preostanek",
-                value = "${item.remaining.formatMoney()}€"
+                value = formatCurrencyAmount(item.remaining)
             )
         }
         Surface(
@@ -358,7 +365,7 @@ private fun BudgetHistoryDetails(
                 .height(52.dp),
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Ink,
+                containerColor = PrimaryAccent,
                 contentColor = Color.White
             )
         ) {
@@ -376,7 +383,7 @@ private fun HistoryStatPill(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        color = Color.White
+        color = SoftAccent
     ) {
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Text(

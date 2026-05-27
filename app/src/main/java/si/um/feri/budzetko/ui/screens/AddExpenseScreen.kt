@@ -1,5 +1,6 @@
 package si.um.feri.budzetko.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -70,10 +71,15 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.LocalAppCurrency
+import si.um.feri.budzetko.currency.MoneyFormatter
+import si.um.feri.budzetko.currency.currentCurrencySymbol
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
-import si.um.feri.budzetko.ui.theme.BudzetkoSurface
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
@@ -81,12 +87,17 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
-private val ScreenBackground = BudzetkoBackground
-private val CardSurface = BudzetkoSurface
+private val ScreenBackground: Color
+    @Composable get() = budzetkoBackground()
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
 private val PrimaryAccent = BudzetkoPurple
-private val SoftAccent = Color(0xFFF4F0FF)
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF71706A)
+private val SoftAccent: Color
+    @Composable get() = budzetkoSoftAccent()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -102,6 +113,7 @@ fun AddExpenseScreen(
 ) {
     val categoryState by categoryViewModel.uiState.collectAsState()
     val categories = categoryState.categories
+    val selectedCurrency = LocalAppCurrency.current
 
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -161,7 +173,7 @@ fun AddExpenseScreen(
         }
     }
 
-    LaunchedEffect(expenseToEdit?.id, categories) {
+    LaunchedEffect(expenseToEdit?.id, categories, selectedCurrency) {
         if (expenseToEdit == null) {
             amount = ""
             description = ""
@@ -170,7 +182,7 @@ fun AddExpenseScreen(
             selectedCategoryId = selectedCategoryId ?: categories.firstOrNull()?.id
             errorMessage = null
         } else {
-            amount = expenseToEdit.amount.toString()
+            amount = MoneyFormatter.formatPlain(expenseToEdit.amount, selectedCurrency)
             description = expenseToEdit.description
             note = ""
             dateInput = Instant.ofEpochMilli(expenseToEdit.date)
@@ -269,6 +281,7 @@ fun AddExpenseScreen(
                                         errorMessage = "Datum vnesi v obliki dd.MM.yyyy."
 
                                     else -> {
+                                        val amountInEur = MoneyFormatter.toBaseEur(parsedAmount, selectedCurrency)
                                         val dateMillis = parsedDate
                                             .atStartOfDay(ZoneId.systemDefault())
                                             .toInstant()
@@ -281,7 +294,7 @@ fun AddExpenseScreen(
 
                                         if (expenseToEdit == null) {
                                             expenseViewModel.addExpense(
-                                                amount = parsedAmount,
+                                                amount = amountInEur,
                                                 date = dateMillis,
                                                 description = fullDescription,
                                                 categoryId = categoryId
@@ -289,7 +302,7 @@ fun AddExpenseScreen(
                                         } else {
                                             expenseViewModel.updateExpense(
                                                 expense = expenseToEdit,
-                                                amount = parsedAmount,
+                                                amount = amountInEur,
                                                 date = dateMillis,
                                                 description = fullDescription,
                                                 categoryId = categoryId
@@ -420,7 +433,7 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = amount,
                 onValueChange = onAmountChange,
-                label = { Text("Znesek (€)") },
+                label = { Text("Znesek (${currentCurrencySymbol()})") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -503,7 +516,7 @@ private fun AddExpenseFormCard(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent, contentColor = Color.White)
             ) {
                 Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(19.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -515,7 +528,9 @@ private fun AddExpenseFormCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, PrimaryAccent),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryAccent)
             ) {
                 Icon(
                     Icons.Outlined.ReceiptLong,
@@ -571,7 +586,7 @@ private fun CategoryTile(
                         modifier = Modifier
                             .size(9.dp)
                             .clip(CircleShape)
-                            .background(Ink)
+                            .background(Color(0xFF050505))
                     )
                 }
             } else {
@@ -597,10 +612,10 @@ private fun AddCategoryTile(onClick: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(Ink),
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryAccent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)

@@ -78,4 +78,7 @@ interface AiSummaryDao {
         """
     )
     suspend fun deleteAllSyncedMissingFromCloud(userId: String): Int
+
+    @Query("DELETE FROM ai_summaries WHERE user_id = :userId")
+    suspend fun deleteAllForUser(userId: String)
 }

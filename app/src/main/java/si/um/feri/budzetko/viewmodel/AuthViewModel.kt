@@ -135,6 +135,45 @@ class AuthViewModel(
         _currentUser.value = null
     }
 
+    fun deleteAccount(password: String) {
+        if (password.isBlank()) {
+            _error.value = "Za brisanje računa vnesi geslo."
+            return
+        }
+
+        val userId = repository.getCurrentUser()?.uid
+        if (userId == null) {
+            _error.value = "Uporabnik ni prijavljen."
+            return
+        }
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+            _message.value = null
+
+            repository.reauthenticateCurrentUser(password)
+                .onFailure {
+                    _error.value = it.message ?: "Ponovna prijava ni uspela."
+                    _isLoading.value = false
+                    return@launch
+                }
+
+            userRepository?.deleteAccountData(userId)
+
+            repository.deleteCurrentUser()
+                .onSuccess {
+                    _message.value = "Račun je izbrisan."
+                    _currentUser.value = null
+                }
+                .onFailure {
+                    _error.value = it.message ?: "Brisanje računa ni uspelo. Poskusi se ponovno prijaviti."
+                }
+
+            _isLoading.value = false
+        }
+    }
+
     override fun onCleared() {
 
         super.onCleared()

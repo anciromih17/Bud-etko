@@ -56,10 +56,10 @@ class SyncRepository(
             }
             val pendingSummaries = summaries.filter { it.syncStatus != SyncStatus.SYNCED }
 
-            var syncedCategories = 0
-            var syncedExpenses = 0
-            var syncedBudgets = 0
-            var syncedSummaries = 0
+            var uploadedCategories = 0
+            var uploadedExpenses = 0
+            var uploadedBudgets = 0
+            var uploadedSummaries = 0
             var failedCategories = 0
             var failedExpenses = 0
             var failedBudgets = 0
@@ -70,7 +70,7 @@ class SyncRepository(
                     firestoreRepository.saveCategory(category)
                     firestoreRepository.deleteLegacyLocalCategory(category)
                 }.onSuccess {
-                    syncedCategories += 1
+                    uploadedCategories += 1
                     categoryDao.updateCategory(category.copy(syncStatus = SyncStatus.SYNCED))
                 }.onFailure {
                     failedCategories += 1
@@ -83,7 +83,7 @@ class SyncRepository(
                     firestoreRepository.saveExpense(expense.copy(syncStatus = SyncStatus.SYNCED))
                     firestoreRepository.deleteLegacyLocalExpense(expense)
                 }.onSuccess {
-                    syncedExpenses += 1
+                    uploadedExpenses += 1
                     expenseDao.updateExpense(expense.copy(syncStatus = SyncStatus.SYNCED))
                 }.onFailure {
                     failedExpenses += 1
@@ -98,7 +98,7 @@ class SyncRepository(
                         limits = budgetDao.getBudgetCategories(budget.id)
                     )
                 }.onSuccess {
-                    syncedBudgets += 1
+                    uploadedBudgets += 1
                     budgetDao.updateBudget(budget.copy(syncStatus = SyncStatus.SYNCED))
                     budgetDao.getBudgetCategories(budget.id).forEach { limit ->
                         budgetDao.updateBudgetCategory(limit.copy(syncStatus = SyncStatus.SYNCED))
@@ -116,7 +116,7 @@ class SyncRepository(
                 runCatching {
                     firestoreRepository.saveAiSummary(summary)
                 }.onSuccess {
-                    syncedSummaries += 1
+                    uploadedSummaries += 1
                     aiSummaryDao.updateSummary(summary.copy(syncStatus = SyncStatus.SYNCED))
                 }.onFailure {
                     failedSummaries += 1
@@ -129,10 +129,10 @@ class SyncRepository(
                 localExpenses = expenses.size,
                 localBudgets = budgets.size,
                 localAiSummaries = summaries.size,
-                syncedCategories = categories.size - failedCategories,
-                syncedExpenses = expenses.size - failedExpenses,
-                syncedBudgets = budgets.size - failedBudgets,
-                syncedAiSummaries = summaries.size - failedSummaries,
+                uploadedCategories = uploadedCategories,
+                uploadedExpenses = uploadedExpenses,
+                uploadedBudgets = uploadedBudgets,
+                uploadedAiSummaries = uploadedSummaries,
                 failedCategories = failedCategories,
                 failedExpenses = failedExpenses,
                 failedBudgets = failedBudgets,
@@ -277,7 +277,7 @@ data class LocalSyncSummary(
         return when {
             failedTotal > 0 -> "Nekateri zapisi niso sinhronizirani: $failedTotal neuspelih, $pendingTotal čakajočih. Klikni Sync."
             pendingTotal > 0 -> "Čaka na sinhronizacijo: $pendingTotal zapisov. Klikni Sync."
-            else -> "Vsi lokalni podatki so sinhronizirani s Firestore."
+            else -> "Ni lokalnih sprememb za sinhronizacijo."
         }
     }
 }
@@ -287,10 +287,10 @@ data class SyncReport(
     val localExpenses: Int,
     val localBudgets: Int,
     val localAiSummaries: Int,
-    val syncedCategories: Int,
-    val syncedExpenses: Int,
-    val syncedBudgets: Int,
-    val syncedAiSummaries: Int,
+    val uploadedCategories: Int,
+    val uploadedExpenses: Int,
+    val uploadedBudgets: Int,
+    val uploadedAiSummaries: Int,
     val failedCategories: Int,
     val failedExpenses: Int,
     val failedBudgets: Int,
@@ -299,9 +299,15 @@ data class SyncReport(
     private val hasFailures: Boolean
         get() = failedCategories + failedExpenses + failedBudgets + failedAiSummaries > 0
 
+    private val uploadedTotal: Int
+        get() = uploadedCategories + uploadedExpenses + uploadedBudgets + uploadedAiSummaries
+
     fun toUserMessage(): String {
-        val prefix = if (hasFailures) "Delno sinhronizirano" else "Sinhronizirano"
-        return "$prefix: kategorije $syncedCategories/$localCategories, stroški $syncedExpenses/$localExpenses, proračuni $syncedBudgets/$localBudgets, AI povzetki $syncedAiSummaries/$localAiSummaries."
+        return when {
+            hasFailures -> "Delno sinhronizirano: neuspešni zapisi - kategorije $failedCategories, stroški $failedExpenses, proračuni $failedBudgets, AI povzetki $failedAiSummaries."
+            uploadedTotal > 0 -> "Podatki so preverjeni s Firestore. Naloženo: kategorije $uploadedCategories, stroški $uploadedExpenses, proračuni $uploadedBudgets, AI povzetki $uploadedAiSummaries."
+            else -> "Podatki so preverjeni s Firestore. Ni lokalnih sprememb za sinhronizacijo."
+        }
     }
 
     fun toMetadata(): Map<String, Any?> {
@@ -314,11 +320,11 @@ data class SyncReport(
                 "budgets" to localBudgets,
                 "aiSummaries" to localAiSummaries
             ),
-            "lastSyncSyncedCounts" to mapOf(
-                "categories" to syncedCategories,
-                "expenses" to syncedExpenses,
-                "budgets" to syncedBudgets,
-                "aiSummaries" to syncedAiSummaries
+            "lastSyncUploadedCounts" to mapOf(
+                "categories" to uploadedCategories,
+                "expenses" to uploadedExpenses,
+                "budgets" to uploadedBudgets,
+                "aiSummaries" to uploadedAiSummaries
             ),
             "lastSyncFailedCounts" to mapOf(
                 "categories" to failedCategories,

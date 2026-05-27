@@ -28,14 +28,18 @@ import androidx.compose.material.icons.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EventNote
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TipsAndUpdates
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -49,7 +53,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,31 +72,47 @@ import com.google.firebase.auth.FirebaseAuth
 import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoBorder
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.currentCurrencySymbol
+import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
+import si.um.feri.budzetko.ui.theme.budzetkoBorder
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.BudgetLimitDraft
 import si.um.feri.budzetko.viewmodel.BudgetUiState
 import si.um.feri.budzetko.viewmodel.BudgetViewModel
+import si.um.feri.budzetko.viewmodel.DashboardUiState
+import si.um.feri.budzetko.viewmodel.SyncStatusUi
+import si.um.feri.budzetko.viewmodel.SyncUiState
 
-private val CardSurface = Color(0xFFFFFFFF)
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
 private val PrimaryAccent = BudzetkoPurple
-private val SecondaryAccent = Color(0xFFF4F0FF)
+private val SecondaryAccent: Color
+    @Composable get() = budzetkoSoftAccent()
 private val LimeAccent = BudzetkoLime
-private val SoftBorder = BudzetkoBorder
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF6D6774)
+private val SoftBorder: Color
+    @Composable get() = budzetkoBorder()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 
 @Composable
 fun SettingsScreen(
     budgetViewModel: BudgetViewModel,
+    dashboardUiState: DashboardUiState,
+    syncUiState: SyncUiState,
     onHomeClick: () -> Unit,
     onProfileClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
+    onSystemSettingsClick: () -> Unit = onProfileClick,
     onLogoutClick: () -> Unit,
     onBudgetHistoryClick: () -> Unit = {},
     onAddExpenseClick: () -> Unit = {},
@@ -102,12 +124,15 @@ fun SettingsScreen(
 
     SettingsContent(
         budgetUiState = budgetUiState,
+        dashboardUiState = dashboardUiState,
+        syncUiState = syncUiState,
         onHomeClick = onHomeClick,
         onProfileClick = onProfileClick,
         onAddExpenseClick = onAddExpenseClick,
         onTransactionsClick = onTransactionsClick,
         onAnalyticsClick = onAnalyticsClick,
         onCategorySettingsClick = onCategorySettingsClick,
+        onSystemSettingsClick = onSystemSettingsClick,
         onLogoutClick = onLogoutClick,
         onBudgetHistoryClick = onBudgetHistoryClick,
         onOpenBudget = budgetViewModel::openBudgetDialog,
@@ -127,12 +152,15 @@ fun SettingsScreen(
 @Composable
 private fun SettingsContent(
     budgetUiState: BudgetUiState,
+    dashboardUiState: DashboardUiState,
+    syncUiState: SyncUiState,
     onHomeClick: () -> Unit,
     onProfileClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onTransactionsClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
     onCategorySettingsClick: () -> Unit,
+    onSystemSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onBudgetHistoryClick: () -> Unit,
     onOpenBudget: () -> Unit,
@@ -147,9 +175,14 @@ private fun SettingsContent(
     onSaveBudget: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isNotificationsOpen by remember { mutableStateOf(false) }
+    var readNotificationIds by remember { mutableStateOf(setOf<String>()) }
+    val notificationItems = notificationItemsFor(dashboardUiState, syncUiState, readNotificationIds)
+    val unreadNotificationCount = notificationItems.count { it.unread }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = BudzetkoBackground,
+        containerColor = budzetkoBackground(),
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
@@ -163,7 +196,7 @@ private fun SettingsContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BudzetkoBackground)
+                .background(budzetkoBackground())
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 22.dp, top = 28.dp, end = 22.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -174,7 +207,10 @@ private fun SettingsContent(
                 SettingsMenuCard(
                     onOpenBudget = onOpenBudget,
                     onBudgetHistoryClick = onBudgetHistoryClick,
-                    onCategorySettingsClick = onCategorySettingsClick
+                    onCategorySettingsClick = onCategorySettingsClick,
+                    onNotificationsClick = { isNotificationsOpen = true },
+                    notificationCount = unreadNotificationCount,
+                    onSystemSettingsClick = onSystemSettingsClick
                 )
             }
             item {
@@ -195,6 +231,16 @@ private fun SettingsContent(
             onConfirmLimit = onConfirmLimit,
             onLimitChange = onLimitChange,
             onSaveBudget = onSaveBudget
+        )
+    }
+
+    if (isNotificationsOpen) {
+        NotificationsDialog(
+            items = notificationItems,
+            onMarkRead = { notificationId ->
+                readNotificationIds = readNotificationIds + notificationId
+            },
+            onDismiss = { isNotificationsOpen = false }
         )
     }
 }
@@ -241,13 +287,13 @@ private fun ProfileCard(onClick: () -> Unit) {
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(LimeAccent.copy(alpha = 0.55f)),
+                    .background(LimeAccent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Person,
                     contentDescription = null,
-                    tint = Ink,
+                    tint = Color(0xFF050505),
                     modifier = Modifier.size(42.dp)
                 )
             }
@@ -273,7 +319,10 @@ private fun ProfileCard(onClick: () -> Unit) {
 private fun SettingsMenuCard(
     onOpenBudget: () -> Unit,
     onBudgetHistoryClick: () -> Unit,
-    onCategorySettingsClick: () -> Unit
+    onCategorySettingsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
+    notificationCount: Int,
+    onSystemSettingsClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -292,8 +341,13 @@ private fun SettingsMenuCard(
             SettingsMenuRow(Icons.Outlined.EventNote, stringResource(R.string.settings_monthly_budget), onOpenBudget)
             SettingsMenuRow(Icons.Outlined.History, stringResource(R.string.settings_budget_history), onBudgetHistoryClick)
             SettingsMenuRow(Icons.Outlined.Category, stringResource(R.string.settings_category_settings), onCategorySettingsClick)
-            SettingsMenuRow(Icons.Outlined.Notifications, stringResource(R.string.settings_notifications), {})
-            SettingsMenuRow(Icons.Outlined.Settings, stringResource(R.string.settings_system), {})
+            SettingsMenuRow(
+                Icons.Outlined.Notifications,
+                stringResource(R.string.settings_notifications),
+                onNotificationsClick,
+                badgeCount = notificationCount
+            )
+            SettingsMenuRow(Icons.Outlined.Settings, stringResource(R.string.settings_system), onSystemSettingsClick)
         }
     }
 }
@@ -302,7 +356,8 @@ private fun SettingsMenuCard(
 private fun SettingsMenuRow(
     icon: ImageVector,
     title: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    badgeCount: Int = 0
 ) {
     Row(
         modifier = Modifier
@@ -328,6 +383,23 @@ private fun SettingsMenuRow(
             fontWeight = FontWeight.Bold,
             color = Ink
         )
+        if (badgeCount > 0) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(Ink),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = badgeCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = CardSurface
+                )
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+        }
         IconButton(onClick = onClick) {
             Icon(
                 imageVector = Icons.Outlined.ArrowForwardIos,
@@ -336,6 +408,351 @@ private fun SettingsMenuRow(
                 modifier = Modifier.size(18.dp)
             )
         }
+    }
+}
+
+private data class NotificationItem(
+    val id: String,
+    val icon: ImageVector,
+    val title: String,
+    val message: String,
+    val date: String,
+    val unread: Boolean = false
+)
+
+@Composable
+private fun notificationItemsFor(
+    dashboardUiState: DashboardUiState,
+    syncUiState: SyncUiState,
+    readNotificationIds: Set<String>
+): List<NotificationItem> {
+    val monthTitle = "${monthName(dashboardUiState.month)} ${dashboardUiState.year}"
+    val spent = formatCurrencyAmount(dashboardUiState.totalSpent)
+    val budgetPercent = if (dashboardUiState.totalBudget > 0.0) {
+        ((dashboardUiState.totalSpent / dashboardUiState.totalBudget) * 100).toInt()
+    } else {
+        0
+    }
+
+    val items = mutableListOf(
+        NotificationItem(
+            id = "monthly-summary-${dashboardUiState.year}-${dashboardUiState.month}",
+            icon = Icons.Outlined.QueryStats,
+            title = stringResource(R.string.notification_monthly_summary),
+            message = if (dashboardUiState.hasBudget) {
+                stringResource(R.string.notification_monthly_summary_message, monthTitle, spent, budgetPercent)
+            } else {
+                stringResource(R.string.notification_missing_budget_message, monthTitle)
+            },
+            date = stringResource(R.string.notification_today),
+            unread = "monthly-summary-${dashboardUiState.year}-${dashboardUiState.month}" !in readNotificationIds
+        )
+    )
+
+    val limitAlert = dashboardUiState.categorySpending
+        .filter { it.limitAmount != null && it.limitAmount > 0.0 && it.progress >= 0.8f }
+        .maxByOrNull { it.progress }
+    if (limitAlert != null) {
+        val percent = (limitAlert.progress * 100).toInt()
+        items += NotificationItem(
+            id = "limit-${limitAlert.categoryId}-${dashboardUiState.year}-${dashboardUiState.month}",
+            icon = Icons.Outlined.WarningAmber,
+            title = if (limitAlert.progress >= 1f) {
+                stringResource(R.string.notification_limit_exceeded)
+            } else {
+                stringResource(R.string.notification_limit_near)
+            },
+            message = stringResource(
+                R.string.notification_limit_message,
+                limitAlert.categoryName,
+                percent
+            ),
+            date = stringResource(R.string.notification_today),
+            unread = "limit-${limitAlert.categoryId}-${dashboardUiState.year}-${dashboardUiState.month}" !in readNotificationIds
+        )
+    }
+
+    val aiMessage = dashboardUiState.aiSummary
+    items += NotificationItem(
+        id = "ai-${dashboardUiState.year}-${dashboardUiState.month}",
+        icon = Icons.Outlined.AutoAwesome,
+        title = stringResource(R.string.notification_ai_recommendation),
+        message = aiMessage?.lineSequence()?.firstOrNull { it.isNotBlank() }?.take(150)
+            ?: stringResource(R.string.notification_ai_recommendation_fallback),
+        date = stringResource(R.string.notification_recent),
+        unread = "ai-${dashboardUiState.year}-${dashboardUiState.month}" !in readNotificationIds
+    )
+
+    if (syncUiState.status == SyncStatusUi.ERROR || syncUiState.status == SyncStatusUi.WARNING) {
+        items += NotificationItem(
+            id = "sync-${syncUiState.status}",
+            icon = Icons.Outlined.CloudOff,
+            title = stringResource(R.string.notification_sync_attention),
+            message = syncUiState.message,
+            date = stringResource(R.string.notification_recent),
+            unread = "sync-${syncUiState.status}" !in readNotificationIds
+        )
+    }
+
+    return items.take(4)
+}
+
+@Composable
+private fun NotificationsDialog(
+    items: List<NotificationItem>,
+    onMarkRead: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var showUnreadOnly by remember { mutableStateOf(false) }
+    val unreadItems = items.filter { it.unread }
+    val visibleItems = if (showUnreadOnly) unreadItems else items
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.18f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = onDismiss
+                )
+                .padding(horizontal = 24.dp, vertical = 36.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 520.dp, max = 720.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick = {}
+                    ),
+                shape = RoundedCornerShape(34.dp),
+                color = CardSurface,
+                shadowElevation = 16.dp
+            ) {
+                Column {
+                    NotificationsHeader(onDismiss = onDismiss)
+                    Text(
+                        text = if (visibleItems.isEmpty()) {
+                            stringResource(R.string.notifications_empty)
+                        } else {
+                            stringResource(R.string.notifications_status)
+                        },
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MutedInk
+                    )
+                    NotificationsTabs(
+                        allCount = items.size,
+                        unreadCount = unreadItems.size,
+                        showUnreadOnly = showUnreadOnly,
+                        onAllClick = { showUnreadOnly = false },
+                        onUnreadClick = { showUnreadOnly = true }
+                    )
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentPadding = PaddingValues(start = 18.dp, top = 16.dp, end = 18.dp, bottom = 22.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        if (visibleItems.isEmpty()) {
+                            item {
+                                EmptyNotificationsCard(
+                                    message = if (showUnreadOnly) {
+                                        stringResource(R.string.notifications_no_unread)
+                                    } else {
+                                        stringResource(R.string.notifications_empty)
+                                    }
+                                )
+                            }
+                        } else {
+                            items(visibleItems) { item ->
+                                NotificationCard(
+                                    item = item,
+                                    onClick = { onMarkRead(item.id) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationsHeader(onDismiss: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 18.dp, top = 18.dp, end = 14.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.settings_notifications),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = Ink
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(SecondaryAccent)
+        ) {
+            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close), tint = Ink)
+        }
+    }
+}
+
+@Composable
+private fun NotificationsTabs(
+    allCount: Int,
+    unreadCount: Int,
+    showUnreadOnly: Boolean,
+    onAllClick: () -> Unit,
+    onUnreadClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        NotificationTabButton(
+            text = stringResource(R.string.notifications_all, allCount),
+            selected = !showUnreadOnly,
+            onClick = onAllClick,
+            modifier = Modifier.weight(1f)
+        )
+        NotificationTabButton(
+            text = stringResource(R.string.notifications_unread, unreadCount),
+            selected = showUnreadOnly,
+            onClick = onUnreadClick,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun NotificationTabButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .height(42.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) PrimaryAccent else SecondaryAccent,
+        border = BorderStroke(1.dp, if (selected) PrimaryAccent else SoftBorder)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (selected) Color.White else Ink
+            )
+        }
+    }
+}
+
+@Composable
+private fun NotificationCard(
+    item: NotificationItem,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(26.dp),
+        color = if (item.unread) SecondaryAccent else CardSurface,
+        border = BorderStroke(1.dp, if (item.unread) PrimaryAccent.copy(alpha = 0.24f) else SoftBorder)
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(if (item.icon == Icons.Outlined.AutoAwesome) LimeAccent else PrimaryAccent.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    tint = if (item.icon == Icons.Outlined.AutoAwesome) Color(0xFF050505) else PrimaryAccent,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.title,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Ink
+                    )
+                    if (item.unread) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(LimeAccent)
+                        )
+                    }
+                }
+                Text(
+                    text = item.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink
+                )
+                Text(
+                    text = item.date,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MutedInk
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyNotificationsCard(message: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        color = SecondaryAccent,
+        border = BorderStroke(1.dp, SoftBorder)
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(18.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MutedInk
+        )
     }
 }
 
@@ -349,7 +766,7 @@ private fun LogoutButton(
             .fillMaxWidth()
             .height(58.dp),
         shape = RoundedCornerShape(18.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+        colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent, contentColor = Color.White)
     ) {
         Icon(imageVector = Icons.Outlined.Logout, contentDescription = null)
         Spacer(modifier = Modifier.width(10.dp))
@@ -424,7 +841,7 @@ private fun BudgetDialog(
                             OutlinedTextField(
                                 value = uiState.incomeInput,
                                 onValueChange = onIncomeChange,
-                                suffix = { Text(text = "€") },
+                                suffix = { Text(text = currentCurrencySymbol()) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -434,7 +851,7 @@ private fun BudgetDialog(
                         Button(
                             onClick = onSuggestLimits,
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = LimeAccent, contentColor = Color(0xFF050505))
                         ) {
                             Icon(imageVector = Icons.Outlined.TipsAndUpdates, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -479,7 +896,7 @@ private fun BudgetDialog(
                                 .fillMaxWidth()
                                 .height(56.dp),
                             shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent, contentColor = Color.White)
                         ) {
                             Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
@@ -581,7 +998,7 @@ private fun BudgetLimitCard(
                         color = Ink
                     )
                     Text(
-                        text = "Mesečni limit: ${draft.limitAmount.formatMoney()}€",
+                        text = "Mesečni limit: ${formatCurrencyAmount(draft.limitAmount)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MutedInk
                     )
@@ -622,7 +1039,7 @@ private fun BudgetLimitCard(
                     onClick = { onConfirmLimit(draft.category.id) },
                     modifier = Modifier.align(Alignment.End),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent, contentColor = Color.White)
                 ) {
                     Icon(Icons.Outlined.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -693,12 +1110,15 @@ private fun SettingsContentPreview() {
     BudzetkoTheme {
         SettingsContent(
             budgetUiState = BudgetUiState(),
+            dashboardUiState = DashboardUiState(month = 5, year = 2026),
+            syncUiState = SyncUiState(),
             onHomeClick = {},
             onProfileClick = {},
             onAddExpenseClick = {},
             onTransactionsClick = {},
             onAnalyticsClick = {},
             onCategorySettingsClick = {},
+            onSystemSettingsClick = {},
             onLogoutClick = {},
             onBudgetHistoryClick = {},
             onOpenBudget = {},

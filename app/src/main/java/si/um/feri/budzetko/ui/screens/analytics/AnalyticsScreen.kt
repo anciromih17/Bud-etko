@@ -64,24 +64,31 @@ import androidx.compose.ui.unit.dp
 import si.um.feri.budzetko.data.entity.AiSummarySource
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
-import si.um.feri.budzetko.ui.theme.BudzetkoSurface
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.DashboardCategorySpending
 import si.um.feri.budzetko.viewmodel.DashboardTransaction
 import si.um.feri.budzetko.viewmodel.DashboardUiState
 import si.um.feri.budzetko.viewmodel.AnalyticsViewModel
 
-private val CardSurface = BudzetkoSurface
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF6D6774)
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 private val PrimaryAccent = BudzetkoPurple
 private val LimeAccent = BudzetkoLime
-private val SoftAccent = Color(0xFFF4F0FF)
+private val SoftAccent: Color
+    @Composable get() = budzetkoSoftAccent()
 private val WarningColor = Color(0xFFFFB864)
 private val DangerColor = Color(0xFFFF7D8A)
 
@@ -160,7 +167,7 @@ private fun AnalyticsContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = BudzetkoBackground,
+        containerColor = budzetkoBackground(),
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
@@ -174,7 +181,7 @@ private fun AnalyticsContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BudzetkoBackground)
+                .background(budzetkoBackground())
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 24.dp, top = 34.dp, end = 24.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -240,7 +247,7 @@ private fun AnalyticsMonthSelector(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(BudzetkoBackground)
+                    .background(budzetkoBackground())
             ) {
                 Icon(
                     imageVector = Icons.Outlined.ChevronLeft,
@@ -271,7 +278,7 @@ private fun AnalyticsMonthSelector(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(BudzetkoBackground)
+                    .background(budzetkoBackground())
             ) {
                 Icon(
                     imageVector = Icons.Outlined.ChevronRight,
@@ -330,9 +337,9 @@ private fun AnalyticsSummaryRow(uiState: DashboardUiState) {
             modifier = Modifier.weight(1f),
             icon = Icons.Outlined.ArrowOutward,
             title = "Poraba",
-            value = "${uiState.totalSpent.formatMoney()}€",
+            value = formatCurrencyAmount(uiState.totalSpent),
             subtitle = "${budgetUsage.toInt()}% proračuna",
-            iconBackground = Ink
+            iconBackground = PrimaryAccent
         )
         AnalyticsMetricCard(
             modifier = Modifier.weight(1f),
@@ -437,14 +444,14 @@ private fun LimitAlertsCard(categories: List<DashboardCategorySpending>) {
                 AlertCategoryLine(
                     category = category,
                     color = DangerColor,
-                    message = "Preseženo za ${(category.spentAmount - (category.limitAmount ?: 0.0)).formatMoney()}€"
+                    message = "Preseženo za ${formatCurrencyAmount(category.spentAmount - (category.limitAmount ?: 0.0))}"
                 )
             }
             nearLimitCategories.take(2).forEach { category ->
                 AlertCategoryLine(
                     category = category,
                     color = WarningColor,
-                    message = "Na voljo še ${((category.limitAmount ?: 0.0) - category.spentAmount).coerceAtLeast(0.0).formatMoney()}€"
+                    message = "Na voljo še ${formatCurrencyAmount(((category.limitAmount ?: 0.0) - category.spentAmount).coerceAtLeast(0.0))}"
                 )
             }
         }
@@ -557,9 +564,9 @@ private fun AnalyticsCategoryRow(
             )
             Text(
                 text = if (limit > 0.0) {
-                    "${category.spentAmount.formatMoney()}€ / ${limit.formatMoney()}€"
+                    "${formatCurrencyAmount(category.spentAmount)} / ${formatCurrencyAmount(limit)}"
                 } else {
-                    "${category.spentAmount.formatMoney()}€"
+                    formatCurrencyAmount(category.spentAmount)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.ExtraBold,
@@ -578,8 +585,8 @@ private fun AnalyticsCategoryRow(
         Text(
             text = when {
                 limit <= 0.0 -> "Limit še ni nastavljen"
-                progress >= 1f -> "Limit presežen za ${(category.spentAmount - limit).formatMoney()}€"
-                progress >= 0.8f -> "Blizu limita · na voljo še ${(limit - category.spentAmount).coerceAtLeast(0.0).formatMoney()}€"
+                progress >= 1f -> "Limit presežen za ${formatCurrencyAmount(category.spentAmount - limit)}"
+                progress >= 0.8f -> "Blizu limita · na voljo še ${formatCurrencyAmount((limit - category.spentAmount).coerceAtLeast(0.0))}"
                 else -> "${(progress * 100).toInt()}% porabljeno"
             },
             style = MaterialTheme.typography.bodySmall,
@@ -618,7 +625,12 @@ private fun AiRecommendationCard(
                         .background(LimeAccent),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = Ink, modifier = Modifier.size(22.dp))
+                    Icon(
+                        Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        tint = Color(0xFF050505),
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(
@@ -662,7 +674,7 @@ private fun AiRecommendationCard(
                     modifier = Modifier.size(42.dp),
                     shape = CircleShape,
                     contentPadding = PaddingValues(0.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent, contentColor = Color.White)
                 ) {
                     if (isGenerating) {
                         Text(text = "...", fontWeight = FontWeight.ExtraBold)
@@ -737,7 +749,7 @@ private fun String.highlightImportantParts() = buildAnnotatedString {
     append(this@highlightImportantParts)
     val boldStyle = SpanStyle(fontWeight = FontWeight.ExtraBold)
     listOf(
-        Regex("""\d+(?:\.\d+)?€"""),
+        Regex("""(?:€|\$|£)?\d+(?:\.\d+)?(?:€|\$|£)?"""),
         Regex("""\d+%"""),
         Regex("""kategoriji\s+([^:]+)"""),
         Regex("""Kategorija\s+(.+?)\s+(?:je|ima)""")
@@ -837,7 +849,7 @@ private fun ChartLabels(categories: List<DashboardCategorySpending>) {
                     )
                 }
                 Text(
-                    text = "${category.spentAmount.formatMoney()}€",
+                    text = formatCurrencyAmount(category.spentAmount),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = MutedInk,

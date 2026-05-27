@@ -66,4 +66,7 @@ interface CategoryDao {
         """
     )
     suspend fun deleteAllSyncedMissingFromCloud(userId: String): Int
+
+    @Query("DELETE FROM categories WHERE user_id = :userId")
+    suspend fun deleteAllForUser(userId: String)
 }

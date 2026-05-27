@@ -1,12 +1,14 @@
 package si.um.feri.budzetko.domain.ai
 
+import si.um.feri.budzetko.AppCurrency
 import si.um.feri.budzetko.viewmodel.DashboardUiState
 
 class AiRecommendationService(
-    private val geminiClient: GeminiAiRecommendationClient
+    private val geminiClient: GeminiAiRecommendationClient,
+    private val currency: AppCurrency
 ) {
     suspend fun generate(uiState: DashboardUiState): AiRecommendationResult {
-        val geminiSummary = geminiClient.generate(uiState)
+        val geminiSummary = geminiClient.generate(uiState, currency)
         return if (geminiSummary != null && geminiSummary.isCompleteRecommendation()) {
             AiRecommendationResult(
                 summary = geminiSummary,
@@ -14,7 +16,7 @@ class AiRecommendationService(
             )
         } else {
             AiRecommendationResult(
-                summary = LocalAiRecommendationEngine.generate(uiState),
+                summary = LocalAiRecommendationEngine.generate(uiState, currency),
                 source = AiRecommendationSource.FALLBACK
             )
         }

@@ -165,6 +165,19 @@ interface BudgetDao {
 
     @Query(
         """
+        DELETE FROM budget_categories
+        WHERE budget_id IN (
+            SELECT id FROM budgets WHERE user_id = :userId
+        )
+        """
+    )
+    suspend fun deleteAllBudgetCategoriesForUser(userId: String)
+
+    @Query("DELETE FROM budgets WHERE user_id = :userId")
+    suspend fun deleteAllBudgetsForUser(userId: String)
+
+    @Query(
+        """
         SELECT budget_categories.category_id AS category_id,
                categories.name AS category_name,
                budget_categories.limit_amount AS limit_amount,

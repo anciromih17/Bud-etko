@@ -324,6 +324,31 @@ class FirestoreRepository {
             .await()
     }
 
+    suspend fun deleteUserData(userId: String) {
+        val userDocument = db.collection("users").document(userId)
+
+        userDocument.collection("expenses").get().await().documents.forEach { document ->
+            document.reference.delete().await()
+        }
+
+        userDocument.collection("categories").get().await().documents.forEach { document ->
+            document.reference.delete().await()
+        }
+
+        userDocument.collection("ai_summaries").get().await().documents.forEach { document ->
+            document.reference.delete().await()
+        }
+
+        userDocument.collection("budgets").get().await().documents.forEach { budgetDocument ->
+            budgetDocument.reference.collection("limits").get().await().documents.forEach { limitDocument ->
+                limitDocument.reference.delete().await()
+            }
+            budgetDocument.reference.delete().await()
+        }
+
+        userDocument.delete().await()
+    }
+
     private fun com.google.firebase.firestore.DocumentSnapshot.getLongValue(field: String): Long? {
         return when (val value = get(field)) {
             is Long -> value

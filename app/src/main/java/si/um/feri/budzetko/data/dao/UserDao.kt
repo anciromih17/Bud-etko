@@ -16,4 +16,7 @@ interface UserDao {
 
     @Upsert
     suspend fun upsertUser(user: UserEntity)
+
+    @Query("DELETE FROM users WHERE user_id = :userId")
+    suspend fun deleteUser(userId: String)
 }
