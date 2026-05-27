@@ -32,13 +32,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import si.um.feri.budzetko.R
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoBorder
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.ui.theme.BudzetkoPurple
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
+import si.um.feri.budzetko.ui.theme.budzetkoBorder
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 
-private val CardSurface = Color(0xFFFFFFFF)
-private val SoftBorder = BudzetkoBorder
-private val Ink = BudzetkoInk
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
+private val SoftBorder: Color
+    @Composable get() = budzetkoBorder()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val PrimaryAccent = BudzetkoPurple
 
 @Composable
 fun BudzetkoBottomBar(
@@ -52,7 +58,7 @@ fun BudzetkoBottomBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(BudzetkoBackground)
+            .background(budzetkoBackground())
             .padding(start = 24.dp, end = 24.dp, bottom = 18.dp, top = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -91,7 +97,7 @@ fun BudzetkoBottomBar(
                     spotColor = Color.Black.copy(alpha = 0.24f)
                 )
                 .clip(CircleShape)
-                .background(Ink)
+                .background(PrimaryAccent)
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,

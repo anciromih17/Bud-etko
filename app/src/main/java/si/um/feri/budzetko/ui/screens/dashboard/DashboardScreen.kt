@@ -50,24 +50,31 @@ import java.time.format.DateTimeFormatter
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.data.entity.SyncStatus
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
-import si.um.feri.budzetko.ui.theme.BudzetkoSurface
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.DashboardCategorySpending
 import si.um.feri.budzetko.viewmodel.DashboardTransaction
 import si.um.feri.budzetko.viewmodel.DashboardUiState
 import si.um.feri.budzetko.viewmodel.DashboardViewModel
 
-private val CardSurface = BudzetkoSurface
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF6D6774)
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 private val PrimaryAccent = BudzetkoPurple
 private val LimeAccent = BudzetkoLime
-private val SoftAccent = Color(0xFFF4F0FF)
+private val SoftAccent: Color
+    @Composable get() = budzetkoSoftAccent()
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 @Composable
 fun DashboardScreen(
@@ -110,7 +117,7 @@ private fun DashboardContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = BudzetkoBackground,
+        containerColor = budzetkoBackground(),
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = {},
@@ -124,7 +131,7 @@ private fun DashboardContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BudzetkoBackground)
+                .background(budzetkoBackground())
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 24.dp, top = 34.dp, end = 24.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -189,7 +196,7 @@ private fun SummaryCard(
                         color = MutedInk
                     )
                     Text(
-                        text = "${uiState.totalBudget.formatMoney()}€",
+                        text = formatCurrencyAmount(uiState.totalBudget),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = Ink
@@ -215,17 +222,17 @@ private fun SummaryCard(
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 SummaryMetricCard(
                     modifier = Modifier.weight(1f),
-                    iconColor = Ink,
+                    iconColor = PrimaryAccent,
                     icon = Icons.Outlined.SouthWest,
                     label = "Porabljeno",
-                    value = "${uiState.totalSpent.formatMoney()}€"
+                    value = formatCurrencyAmount(uiState.totalSpent)
                 )
                 SummaryMetricCard(
                     modifier = Modifier.weight(1f),
-                    iconColor = Ink,
+                    iconColor = PrimaryAccent,
                     icon = Icons.Outlined.ArrowOutward,
                     label = "Na voljo",
-                    value = "${uiState.available.formatMoney()}€"
+                    value = formatCurrencyAmount(uiState.available)
                 )
             }
         }
@@ -243,7 +250,7 @@ private fun SummaryMetricCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
-        color = Color(0xFFFBFAF7)
+        color = SoftAccent
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -373,7 +380,7 @@ private fun CategoryProgressRow(
                     color = Ink
                 )
                 Text(
-                    text = "${category.spentAmount.formatMoney()}€",
+                    text = formatCurrencyAmount(category.spentAmount),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = Ink
@@ -469,7 +476,7 @@ private fun RecentTransactionRow(transaction: DashboardTransaction) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "-${transaction.expense.amount.formatMoney()}€",
+                text = "-${formatCurrencyAmount(transaction.expense.amount)}",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink

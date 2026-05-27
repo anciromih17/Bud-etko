@@ -69,25 +69,35 @@ import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryBudgetRole
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoBorder
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.currentCurrencySymbol
+import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoLime
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
 import si.um.feri.budzetko.ui.theme.BudzetkoTheme
 import si.um.feri.budzetko.ui.theme.BudzetkoCategoryColors
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
+import si.um.feri.budzetko.ui.theme.budzetkoBorder
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.CategoryListItem
 import si.um.feri.budzetko.viewmodel.CategoryUiState
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 
-private val CardSurface = Color(0xFFFFFFFF)
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
 private val PrimaryAccent = BudzetkoPurple
-private val SecondaryAccent = Color(0xFFF4F0FF)
+private val SecondaryAccent: Color
+    @Composable get() = budzetkoSoftAccent()
 private val LimeAccent = BudzetkoLime
-private val SoftBorder = BudzetkoBorder
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF6D6774)
+private val SoftBorder: Color
+    @Composable get() = budzetkoBorder()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 private val Danger = Color(0xFFB3261E)
 
 @Composable
@@ -160,7 +170,7 @@ private fun CategoryContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = BudzetkoBackground,
+        containerColor = budzetkoBackground(),
         bottomBar = {
             BudzetkoBottomBar(
                 onHomeClick = onHomeClick,
@@ -174,7 +184,7 @@ private fun CategoryContent(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BudzetkoBackground)
+                .background(budzetkoBackground())
                 .padding(innerPadding),
             contentPadding = PaddingValues(start = 24.dp, top = 34.dp, end = 24.dp, bottom = 26.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -272,7 +282,7 @@ private fun CategoryHeader(onProfileClick: () -> Unit) {
                     spotColor = PrimaryAccent.copy(alpha = 0.12f)
                 )
                 .clip(CircleShape)
-                .background(Ink)
+                .background(PrimaryAccent)
         ) {
             Icon(
                 imageVector = Icons.Filled.Person,
@@ -326,7 +336,7 @@ private fun CategoryCard(
                 )
                 Text(
                     text = item.monthlyLimit?.let { limit ->
-                        stringResource(R.string.monthly_limit_value, limit.formatMoney())
+                        stringResource(R.string.monthly_limit_value, formatCurrencyAmount(limit))
                     } ?: stringResource(R.string.monthly_limit_placeholder),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
@@ -404,7 +414,7 @@ private fun CategoryLeadingIcon(category: CategoryEntity) {
                 modifier = Modifier
                     .size(14.dp)
                     .clip(CircleShape)
-                    .background(Ink)
+                    .background(Color(0xFF050505))
             )
         } else {
             Text(
@@ -430,7 +440,7 @@ private fun CreateNewButton(onClick: () -> Unit) {
             ),
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Ink,
+            containerColor = PrimaryAccent,
             contentColor = Color.White
         )
     ) {
@@ -616,7 +626,7 @@ private fun CategoryDialog(
                                 .height(56.dp),
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Ink,
+                                containerColor = PrimaryAccent,
                                 contentColor = Color.White
                             )
                         ) {
@@ -661,8 +671,8 @@ private fun CategoryBudgetRolePicker(
                     onClick = { onBudgetRoleSelected(role) },
                     label = { Text(text = stringResource(role.labelRes())) },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = LimeAccent.copy(alpha = 0.55f),
-                        selectedLabelColor = PrimaryAccent
+                        selectedContainerColor = LimeAccent,
+                        selectedLabelColor = Color(0xFF050505)
                     )
                 )
             }
@@ -867,7 +877,7 @@ private fun CategoryLimitPreview(
             OutlinedTextField(
                 value = limitInput,
                 onValueChange = onLimitInputChange,
-                suffix = { Text(text = "€") },
+                suffix = { Text(text = currentCurrencySymbol()) },
                 singleLine = true,
                 modifier = Modifier.width(116.dp)
             )
@@ -878,7 +888,7 @@ private fun CategoryLimitPreview(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = LimeAccent,
-                    contentColor = Ink
+                    contentColor = Color(0xFF050505)
                 )
             ) {
                 Icon(

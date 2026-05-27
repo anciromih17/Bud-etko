@@ -1,6 +1,7 @@
 package si.um.feri.budzetko.data.repository
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.EmailAuthProvider
 import kotlinx.coroutines.tasks.await
 
 class AuthRepository {
@@ -50,5 +51,47 @@ class AuthRepository {
 
     fun logout() {
         auth.signOut()
+    }
+
+    suspend fun deleteCurrentUser(): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(IllegalStateException("Uporabnik ni prijavljen."))
+            user.delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun reauthenticateCurrentUser(password: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(IllegalStateException("Uporabnik ni prijavljen."))
+            val email = user.email ?: return Result.failure(IllegalStateException("Email uporabnika ni na voljo."))
+            val credential = EmailAuthProvider.getCredential(email, password)
+            user.reauthenticate(credential).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateCurrentUserEmail(email: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(IllegalStateException("Uporabnik ni prijavljen."))
+            user.updateEmail(email.trim()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateCurrentUserPassword(password: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.failure(IllegalStateException("Uporabnik ni prijavljen."))
+            user.updatePassword(password).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

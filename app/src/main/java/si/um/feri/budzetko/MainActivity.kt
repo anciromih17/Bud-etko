@@ -1,9 +1,11 @@
 package si.um.feri.budzetko
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -11,6 +13,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.YearMonth
@@ -24,6 +28,7 @@ import si.um.feri.budzetko.data.repository.SyncRepository
 import si.um.feri.budzetko.data.repository.UserRepository
 import si.um.feri.budzetko.domain.ai.AiRecommendationService
 import si.um.feri.budzetko.domain.ai.GeminiAiRecommendationClient
+import si.um.feri.budzetko.currency.LocalAppCurrency
 import si.um.feri.budzetko.ui.screens.AddExpenseScreen
 import si.um.feri.budzetko.ui.screens.AuthScreen
 import si.um.feri.budzetko.ui.screens.TransactionsScreen
@@ -45,26 +50,87 @@ import si.um.feri.budzetko.viewmodel.SyncViewModel
 import si.um.feri.budzetko.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
+    private var onProfileImageSelected: ((String) -> Unit)? = null
+    private val profileImagePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            onProfileImageSelected?.invoke(uri.toString())
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BudzetkoTheme {
-                BudzetkoApp()
+            val baseContext = LocalContext.current
+            var appLanguage by remember { mutableStateOf(AppLanguageStore.load(baseContext)) }
+            var appCurrency by remember { mutableStateOf(AppLanguageStore.loadCurrency(baseContext)) }
+            var appThemeMode by remember { mutableStateOf(AppLanguageStore.loadTheme(baseContext)) }
+            val localizedContext = remember(baseContext, appLanguage) {
+                AppLanguageStore.localizedContext(baseContext, appLanguage)
+            }
+
+            CompositionLocalProvider(
+                LocalContext provides localizedContext,
+                LocalAppCurrency provides appCurrency
+            ) {
+                BudzetkoTheme(darkTheme = appThemeMode == AppThemeMode.DARK) {
+                    BudzetkoApp(
+                        appLanguage = appLanguage,
+                        onLanguageChange = { language ->
+                            AppLanguageStore.save(baseContext, language)
+                            appLanguage = language
+                        },
+                        appCurrency = appCurrency,
+                        onCurrencyChange = { currency ->
+                            AppLanguageStore.saveCurrency(baseContext, currency)
+                            appCurrency = currency
+                        },
+                        appThemeMode = appThemeMode,
+                        onThemeChange = { themeMode ->
+                            AppLanguageStore.saveTheme(baseContext, themeMode)
+                            appThemeMode = themeMode
+                        },
+                        onPickProfileImage = { onSelected ->
+                            onProfileImageSelected = onSelected
+                            profileImagePicker.launch(arrayOf("image/*"))
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun BudzetkoApp() {
+fun BudzetkoApp(
+    appLanguage: AppLanguage = AppLanguage.SLOVENIAN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
+    appCurrency: AppCurrency = AppCurrency.EUR,
+    onCurrencyChange: (AppCurrency) -> Unit = {},
+    appThemeMode: AppThemeMode = AppThemeMode.LIGHT,
+    onThemeChange: (AppThemeMode) -> Unit = {},
+    onPickProfileImage: (((String) -> Unit) -> Unit) = {}
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val database = AppDatabase.getDatabase(context)
 
     val budgetRepository = remember { BudgetRepository(database.budgetDao()) }
     val categoryRepository = remember { CategoryRepository(database.categoryDao()) }
-    val userRepository = remember { UserRepository(database.userDao()) }
+    val userRepository = remember {
+        UserRepository(
+            userDao = database.userDao(),
+            categoryDao = database.categoryDao(),
+            expenseDao = database.expenseDao(),
+            budgetDao = database.budgetDao(),
+            aiSummaryDao = database.aiSummaryDao()
+        )
+    }
     val expenseRepository = remember { ExpenseRepository(database.expenseDao()) }
     val aiSummaryRepository = remember { AiSummaryRepository(database.aiSummaryDao()) }
     val syncRepository = remember {
@@ -76,9 +142,10 @@ fun BudzetkoApp() {
             aiSummaryDao = database.aiSummaryDao()
         )
     }
-    val aiRecommendationService = remember {
+    val aiRecommendationService = remember(appCurrency) {
         AiRecommendationService(
-            geminiClient = GeminiAiRecommendationClient(apiKey = BuildConfig.GEMINI_API_KEY)
+            geminiClient = GeminiAiRecommendationClient(apiKey = BuildConfig.GEMINI_API_KEY),
+            currency = appCurrency
         )
     }
 
@@ -194,6 +261,8 @@ fun BudzetkoApp() {
         key = "sync_$userId",
         factory = SyncViewModel.Factory(syncRepository)
     )
+    val dashboardUiState by dashboardViewModel.uiState.collectAsState()
+    val syncUiState by syncViewModel.uiState.collectAsState()
 
     LaunchedEffect(userId) {
         syncViewModel.syncOnStartup(userId)
@@ -247,9 +316,12 @@ fun BudzetkoApp() {
 
         BudzetkoScreen.Settings -> SettingsScreen(
             budgetViewModel = budgetViewModel,
+            dashboardUiState = dashboardUiState,
+            syncUiState = syncUiState,
             onHomeClick = { currentScreen = BudzetkoScreen.Dashboard },
             onProfileClick = { currentScreen = BudzetkoScreen.Profile },
             onCategorySettingsClick = { currentScreen = BudzetkoScreen.Categories },
+            onSystemSettingsClick = { currentScreen = BudzetkoScreen.Profile },
             onBudgetHistoryClick = { currentScreen = BudzetkoScreen.BudgetHistory },
             onLogoutClick = { authViewModel.logout() },
             onAddExpenseClick = {
@@ -307,8 +379,21 @@ fun BudzetkoApp() {
             syncViewModel = syncViewModel,
             onBackClick = { currentScreen = BudzetkoScreen.Dashboard },
             onHomeClick = { currentScreen = BudzetkoScreen.Dashboard },
+            onTransactionsClick = { openTransactions() },
+            onAddExpenseClick = {
+                expenseBeingEdited = null
+                isAddExpenseDialogOpen = true
+            },
             onAnalyticsClick = { currentScreen = BudzetkoScreen.Analytics },
-            onSettingsClick = { currentScreen = BudzetkoScreen.Settings }
+            onSettingsClick = { currentScreen = BudzetkoScreen.Settings },
+            appLanguage = appLanguage,
+            onLanguageChange = onLanguageChange,
+            appCurrency = appCurrency,
+            onCurrencyChange = onCurrencyChange,
+            appThemeMode = appThemeMode,
+            onThemeChange = onThemeChange,
+            onDeleteAccountClick = { password -> authViewModel.deleteAccount(password) },
+            onPickProfileImage = onPickProfileImage
         )
     }
 

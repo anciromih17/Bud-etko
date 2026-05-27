@@ -7,13 +7,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import si.um.feri.budzetko.AppCurrency
+import si.um.feri.budzetko.currency.MoneyFormatter
 import si.um.feri.budzetko.viewmodel.DashboardUiState
 
 class GeminiAiRecommendationClient(
     private val apiKey: String,
     private val modelName: String = "gemini-2.5-flash"
 ) {
-    suspend fun generate(uiState: DashboardUiState): String? {
+    suspend fun generate(uiState: DashboardUiState, currency: AppCurrency): String? {
         if (apiKey.isBlank()) return null
 
         return withContext(Dispatchers.IO) {
@@ -26,7 +28,7 @@ class GeminiAiRecommendationClient(
                 connection.setRequestProperty("Content-Type", "application/json")
 
                 OutputStreamWriter(connection.outputStream).use { writer ->
-                    writer.write(requestBody(uiState).toString())
+                    writer.write(requestBody(uiState, currency).toString())
                 }
 
                 val responseCode = connection.responseCode
@@ -47,14 +49,14 @@ class GeminiAiRecommendationClient(
         return "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
     }
 
-    private fun requestBody(uiState: DashboardUiState): JSONObject {
+    private fun requestBody(uiState: DashboardUiState, currency: AppCurrency): JSONObject {
         return JSONObject()
             .put(
                 "contents",
                 JSONArray().put(
                     JSONObject().put(
                         "parts",
-                        JSONArray().put(JSONObject().put("text", prompt(uiState)))
+                        JSONArray().put(JSONObject().put("text", prompt(uiState, currency)))
                     )
                 )
             )
@@ -70,10 +72,10 @@ class GeminiAiRecommendationClient(
             )
     }
 
-    private fun prompt(uiState: DashboardUiState): String {
+    private fun prompt(uiState: DashboardUiState, currency: AppCurrency): String {
         val categories = uiState.categorySpending.joinToString(separator = "\n") { category ->
-            val limit = category.limitAmount?.let { "${it.formatMoney()}€" } ?: "brez limita"
-            "- ${category.categoryName}: poraba ${category.spentAmount.formatMoney()}€, limit $limit"
+            val limit = category.limitAmount?.let { it.formatMoney(currency) } ?: "brez limita"
+            "- ${category.categoryName}: poraba ${category.spentAmount.formatMoney(currency)}, limit $limit"
         }
 
         return """
@@ -87,9 +89,10 @@ class GeminiAiRecommendationClient(
             Vsaka vrstica naj bo dolga največ 20 besed.
 
             Mesec: ${uiState.month}/${uiState.year}
-            Mesečni proračun: ${uiState.totalBudget.formatMoney()}€
-            Skupna poraba: ${uiState.totalSpent.formatMoney()}€
-            Preostanek: ${uiState.available.formatMoney()}€
+            Valuta prikaza: ${currency.code}
+            Mesečni proračun: ${uiState.totalBudget.formatMoney(currency)}
+            Skupna poraba: ${uiState.totalSpent.formatMoney(currency)}
+            Preostanek: ${uiState.available.formatMoney(currency)}
 
             Poraba po kategorijah:
             $categories
@@ -105,4 +108,4 @@ class GeminiAiRecommendationClient(
     }
 }
 
-private fun Double.formatMoney(): String = "%.2f".format(this)
+private fun Double.formatMoney(currency: AppCurrency): String = MoneyFormatter.format(this, currency)

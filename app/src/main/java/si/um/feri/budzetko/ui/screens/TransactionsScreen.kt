@@ -66,20 +66,28 @@ import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
 import si.um.feri.budzetko.ui.components.BudzetkoBottomBar
-import si.um.feri.budzetko.ui.theme.BudzetkoBackground
-import si.um.feri.budzetko.ui.theme.BudzetkoInk
+import si.um.feri.budzetko.currency.formatCurrencyAmount
 import si.um.feri.budzetko.ui.theme.BudzetkoPurple
-import si.um.feri.budzetko.ui.theme.BudzetkoSurface
+import si.um.feri.budzetko.ui.theme.budzetkoBackground
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
+import si.um.feri.budzetko.ui.theme.budzetkoInk
+import si.um.feri.budzetko.ui.theme.budzetkoMutedInk
+import si.um.feri.budzetko.ui.theme.budzetkoSoftAccent
+import si.um.feri.budzetko.ui.theme.budzetkoSurface
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
 
-private val ScreenBackground = BudzetkoBackground
-private val CardSurface = BudzetkoSurface
+private val ScreenBackground: Color
+    @Composable get() = budzetkoBackground()
+private val CardSurface: Color
+    @Composable get() = budzetkoSurface()
 private val PrimaryAccent = BudzetkoPurple
-private val SoftAccent = Color(0xFFF4F0FF)
-private val Ink = BudzetkoInk
-private val MutedInk = Color(0xFF71706A)
+private val SoftAccent: Color
+    @Composable get() = budzetkoSoftAccent()
+private val Ink: Color
+    @Composable get() = budzetkoInk()
+private val MutedInk: Color
+    @Composable get() = budzetkoMutedInk()
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 private enum class ExpenseSortMode(val label: String) {
@@ -285,7 +293,7 @@ private fun TotalSpentCard(totalSpent: Double) {
                 color = MutedInk
             )
             Text(
-                text = "${totalSpent.formatMoney()}€",
+                text = formatCurrencyAmount(totalSpent),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
@@ -615,7 +623,7 @@ private fun TransactionRow(
             Text(text = expense.description.lineSequence().firstOrNull().orEmpty(), fontWeight = FontWeight.Bold, color = Ink)
             Text(text = category?.name ?: "Brez kategorije", style = MaterialTheme.typography.bodySmall, color = MutedInk)
         }
-        Text(text = "-${expense.amount.formatMoney()}€", fontWeight = FontWeight.ExtraBold, color = Ink)
+        Text(text = "-${formatCurrencyAmount(expense.amount)}", fontWeight = FontWeight.ExtraBold, color = Ink)
         IconButton(onClick = { onEditExpenseClick(expense) }, modifier = Modifier.size(32.dp)) {
             Icon(Icons.Outlined.Edit, contentDescription = "Uredi", tint = PrimaryAccent, modifier = Modifier.size(18.dp))
         }
@@ -625,6 +633,7 @@ private fun TransactionRow(
     }
 }
 
+@Composable
 private fun transactionIconBackground(category: CategoryEntity?): Color {
     if (category == null) return SoftAccent
     return budzetkoCategoryColor(
