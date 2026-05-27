@@ -59,6 +59,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.platform.LocalContext
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -73,6 +77,9 @@ import si.um.feri.budzetko.ui.theme.BudzetkoSurface
 import si.um.feri.budzetko.ui.theme.budzetkoCategoryColor
 import si.um.feri.budzetko.viewmodel.CategoryViewModel
 import si.um.feri.budzetko.viewmodel.ExpenseViewModel
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 private val ScreenBackground = BudzetkoBackground
 private val CardSurface = BudzetkoSurface
@@ -103,6 +110,56 @@ fun AddExpenseScreen(
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isDatePickerOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val textRecognizer = remember {
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+
+        if (uri != null) {
+
+            errorMessage = "Berem račun z OCR..."
+
+            val image = InputImage.fromFilePath(context, uri)
+
+            textRecognizer.process(image)
+                .addOnSuccessListener { visionText ->
+
+                    val recognizedText = visionText.text
+
+                    val detectedAmount = extractReceiptAmount(recognizedText)
+
+                    if (detectedAmount != null) {
+
+                        amount = detectedAmount
+
+                        if (description.isBlank()) {
+                            description = "Račun"
+                        }
+
+                        note = recognizedText.take(500)
+
+                        errorMessage = "Znesek uspešno prebran 😊"
+
+                    } else {
+
+                        note = recognizedText.take(500)
+
+                        errorMessage = "OCR ni našel zneska."
+                    }
+                }
+
+                .addOnFailureListener {
+
+                    errorMessage = "OCR ni uspel."
+                }
+        }
+    }
 
     LaunchedEffect(expenseToEdit?.id, categories) {
         if (expenseToEdit == null) {
@@ -190,6 +247,9 @@ fun AddExpenseScreen(
                                 errorMessage = null
                             },
                             onAddCategoryClick = onAddCategoryClick,
+                            onScanReceiptClick = {
+                                imagePickerLauncher.launch("image/*")
+                            },
                             onSaveClick = {
                                 val parsedAmount = amount.replace(',', '.').toDoubleOrNull()
                                 val parsedDate = parseDate(dateInput)
@@ -331,6 +391,7 @@ private fun AddExpenseFormCard(
     onDatePickerClick: () -> Unit,
     onCategorySelected: (Long) -> Unit,
     onAddCategoryClick: () -> Unit,
+    onScanReceiptClick: () -> Unit,
     onSaveClick: () -> Unit
 ) {
     Surface(
@@ -450,15 +511,24 @@ private fun AddExpenseFormCard(
             }
 
             OutlinedButton(
-                onClick = {},
+                onClick = onScanReceiptClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(18.dp)
             ) {
-                Icon(Icons.Outlined.ReceiptLong, contentDescription = null, modifier = Modifier.size(19.dp))
+                Icon(
+                    Icons.Outlined.ReceiptLong,
+                    contentDescription = null,
+                    modifier = Modifier.size(19.dp)
+                )
+
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Skeniraj račun", fontWeight = FontWeight.Bold)
+
+                Text(
+                    text = "Skeniraj račun",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
@@ -545,5 +615,27 @@ private fun parseDate(value: String): LocalDate? {
         LocalDate.parse(value, DateFormatter)
     } catch (_: DateTimeParseException) {
         null
+    }
+}
+
+private fun extractReceiptAmount(text: String): String? {
+
+    val regex = Regex("""\b\d{1,4}[,.]\d{2}\b""")
+
+    val amounts = regex.findAll(text)
+        .mapNotNull { match ->
+
+            match.value
+                .replace(',', '.')
+                .toDoubleOrNull()
+        }
+
+        .filter { it > 0.0 }
+
+        .toList()
+
+    return amounts.maxOrNull()?.let { amount ->
+
+        "%.2f".format(java.util.Locale.US, amount)
     }
 }

@@ -89,6 +89,8 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
