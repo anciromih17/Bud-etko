@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.AlertDialog
@@ -90,11 +91,11 @@ private val MutedInk: Color
     @Composable get() = budzetkoMutedInk()
 private val Danger = Color(0xFFB3261E)
 private val DateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-private enum class ExpenseSortMode(val label: String) {
-    NEWEST("Najnovejše"),
-    OLDEST("Najstarejše"),
-    AMOUNT_HIGH("Najvišji znesek"),
-    AMOUNT_LOW("Najnižji znesek");
+private enum class ExpenseSortMode {
+    NEWEST,
+    OLDEST,
+    AMOUNT_HIGH,
+    AMOUNT_LOW;
 
     fun next(): ExpenseSortMode {
         return entries[(ordinal + 1) % entries.size]
@@ -247,13 +248,13 @@ private fun TransactionsHeader(onProfileClick: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Transakcije",
+                text = stringResource(R.string.transactions_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
             )
             Text(
-                text = "Pregled vseh stroškov",
+                text = stringResource(R.string.transactions_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MutedInk
@@ -287,7 +288,7 @@ private fun TotalSpentCard(totalSpent: Double) {
     ) {
         Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp)) {
             Text(
-                text = "Skupaj porabljeno",
+                text = stringResource(R.string.transactions_total_spent),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MutedInk
@@ -371,7 +372,7 @@ private fun SearchRow(
         OutlinedTextField(
             value = search,
             onValueChange = onSearchChange,
-            placeholder = { Text("Išči...") },
+            placeholder = { Text(stringResource(R.string.search_placeholder)) },
             singleLine = true,
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier.weight(1f)
@@ -380,13 +381,18 @@ private fun SearchRow(
         IconButton(onClick = onFilterClick, modifier = Modifier.size(40.dp)) {
             Icon(
                 Icons.Outlined.FilterList,
-                contentDescription = "Filtri",
+                contentDescription = stringResource(R.string.filters),
                 modifier = Modifier.size(26.dp),
                 tint = if (areFiltersExpanded) PrimaryAccent else Ink
             )
         }
         IconButton(onClick = onSortClick, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Outlined.SwapVert, contentDescription = "Razvrsti: ${sortMode.label}", modifier = Modifier.size(26.dp), tint = Ink)
+            Icon(
+                Icons.Outlined.SwapVert,
+                contentDescription = stringResource(R.string.sort_by, stringResource(sortMode.labelRes())),
+                modifier = Modifier.size(26.dp),
+                tint = Ink
+            )
         }
     }
 }
@@ -427,7 +433,7 @@ private fun ActiveFilterRow(
         }
         if (sortMode != ExpenseSortMode.NEWEST) {
             item {
-                CompactInfoChip(text = sortMode.label)
+                CompactInfoChip(text = stringResource(sortMode.labelRes()))
             }
         }
     }
@@ -503,7 +509,7 @@ private fun MonthFilterRow(
             FilterChip(
                 selected = selectedMonth == null,
                 onClick = { onMonthSelected(null) },
-                label = { Text(text = "Vsi meseci") },
+                label = { Text(text = stringResource(R.string.all_months)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Ink,
                     selectedLabelColor = Color.White
@@ -538,7 +544,7 @@ private fun CategoryFilterRow(
             FilterChip(
                 selected = selectedCategoryId == null,
                 onClick = { onCategorySelected(null) },
-                label = { Text(text = "Vse") },
+                label = { Text(text = stringResource(R.string.all)) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = Ink,
                     selectedLabelColor = Color.White
@@ -621,14 +627,30 @@ private fun TransactionRow(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = expense.description.lineSequence().firstOrNull().orEmpty(), fontWeight = FontWeight.Bold, color = Ink)
-            Text(text = category?.name ?: "Brez kategorije", style = MaterialTheme.typography.bodySmall, color = MutedInk)
+            Text(text = category?.name ?: stringResource(R.string.no_category), style = MaterialTheme.typography.bodySmall, color = MutedInk)
+            if (!expense.receiptImagePath.isNullOrBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.ReceiptLong,
+                        contentDescription = null,
+                        tint = PrimaryAccent,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.receipt_saved),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PrimaryAccent
+                    )
+                }
+            }
         }
         Text(text = "-${formatCurrencyAmount(expense.amount)}", fontWeight = FontWeight.ExtraBold, color = Ink)
         IconButton(onClick = { onEditExpenseClick(expense) }, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Outlined.Edit, contentDescription = "Uredi", tint = PrimaryAccent, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.edit), tint = PrimaryAccent, modifier = Modifier.size(18.dp))
         }
         IconButton(onClick = { onDeleteExpenseClick(expense) }, modifier = Modifier.size(32.dp)) {
-            Icon(Icons.Outlined.Delete, contentDescription = "Izbriši", tint = Danger, modifier = Modifier.size(18.dp))
+            Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.delete), tint = Danger, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -660,7 +682,7 @@ private fun ExpenseSortMode.comparator(): Comparator<ExpenseEntity> {
 private fun EmptyTransactionsCard() {
     Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(26.dp), color = CardSurface) {
         Text(
-            text = "Ni še dodanih stroškov.",
+            text = stringResource(R.string.transactions_empty),
             modifier = Modifier.padding(20.dp),
             color = MutedInk
         )
@@ -730,21 +752,31 @@ private data class MonthYear(
     val year: Int
 )
 
+@Composable
 private fun monthName(month: Int): String {
     return when (month) {
-        1 -> "Januar"
-        2 -> "Februar"
-        3 -> "Marec"
-        4 -> "April"
-        5 -> "Maj"
-        6 -> "Junij"
-        7 -> "Julij"
-        8 -> "Avgust"
-        9 -> "September"
-        10 -> "Oktober"
-        11 -> "November"
-        12 -> "December"
+        1 -> stringResource(R.string.month_january)
+        2 -> stringResource(R.string.month_february)
+        3 -> stringResource(R.string.month_march)
+        4 -> stringResource(R.string.month_april)
+        5 -> stringResource(R.string.month_may)
+        6 -> stringResource(R.string.month_june)
+        7 -> stringResource(R.string.month_july)
+        8 -> stringResource(R.string.month_august)
+        9 -> stringResource(R.string.month_september)
+        10 -> stringResource(R.string.month_october)
+        11 -> stringResource(R.string.month_november)
+        12 -> stringResource(R.string.month_december)
         else -> month.toString()
+    }
+}
+
+private fun ExpenseSortMode.labelRes(): Int {
+    return when (this) {
+        ExpenseSortMode.NEWEST -> R.string.sort_newest
+        ExpenseSortMode.OLDEST -> R.string.sort_oldest
+        ExpenseSortMode.AMOUNT_HIGH -> R.string.sort_amount_high
+        ExpenseSortMode.AMOUNT_LOW -> R.string.sort_amount_low
     }
 }
 

@@ -43,5 +43,7 @@ data class ExpenseEntity(
     @ColumnInfo(name = "user_id")
     val userId: String,
     @ColumnInfo(name = "category_id")
-    val categoryId: Long
+    val categoryId: Long,
+    @ColumnInfo(name = "receipt_image_path")
+    val receiptImagePath: String? = null
 )

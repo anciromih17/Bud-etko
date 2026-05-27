@@ -45,7 +45,9 @@ class FirestoreRepository {
                     "syncStatus" to expense.syncStatus.name,
                     "updatedAt" to expense.updatedAt,
                     "userId" to expense.userId,
-                    "categoryId" to expense.categoryId
+                    "categoryId" to expense.categoryId,
+                    "hasReceiptImage" to !expense.receiptImagePath.isNullOrBlank(),
+                    "receiptImageStoragePath" to null
                 )
             )
             .await()
@@ -161,7 +163,8 @@ class FirestoreRepository {
                     syncStatus = syncStatus,
                     updatedAt = document.getLongValue("updatedAt") ?: System.currentTimeMillis(),
                     userId = document.getString("userId") ?: userId,
-                    categoryId = categoryId
+                    categoryId = categoryId,
+                    receiptImagePath = null
                 )
             }
     }

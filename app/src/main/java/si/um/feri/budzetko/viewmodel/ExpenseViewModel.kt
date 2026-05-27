@@ -29,7 +29,8 @@ class ExpenseViewModel(
         amount: Double,
         date: Long,
         description: String,
-        categoryId: Long
+        categoryId: Long,
+        receiptImagePath: String? = null
     ) {
         viewModelScope.launch {
             repository.insertExpense(
@@ -37,7 +38,8 @@ class ExpenseViewModel(
                 date = date,
                 description = description,
                 userId = currentUserId,
-                categoryId = categoryId
+                categoryId = categoryId,
+                receiptImagePath = receiptImagePath
             )
         }
     }
@@ -47,7 +49,8 @@ class ExpenseViewModel(
         amount: Double,
         date: Long,
         description: String,
-        categoryId: Long
+        categoryId: Long,
+        receiptImagePath: String? = expense.receiptImagePath
     ) {
         viewModelScope.launch {
             repository.updateExpense(
@@ -56,6 +59,7 @@ class ExpenseViewModel(
                     date = date,
                     description = description,
                     categoryId = categoryId,
+                    receiptImagePath = receiptImagePath,
                     updatedAt = System.currentTimeMillis()
                 )
             )

@@ -1,5 +1,6 @@
 package si.um.feri.budzetko.viewmodel
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,9 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import si.um.feri.budzetko.R
+import si.um.feri.budzetko.data.repository.LocalSyncSummary
+import si.um.feri.budzetko.data.repository.SyncReport
 import si.um.feri.budzetko.data.repository.SyncRepository
 
 class SyncViewModel(
@@ -22,7 +26,7 @@ class SyncViewModel(
         if (userId == null) {
             _uiState.value = SyncUiState(
                 status = SyncStatusUi.ERROR,
-                message = "Uporabnik ni prijavljen."
+                messageResId = R.string.sync_error_not_logged_in
             )
             return
         }
@@ -33,12 +37,13 @@ class SyncViewModel(
             }.onSuccess { summary ->
                 _uiState.value = SyncUiState(
                     status = if (summary.hasIssues) SyncStatusUi.WARNING else SyncStatusUi.SUCCESS,
-                    message = summary.toUserMessage()
+                    messageResId = summary.messageResId(),
+                    messageArgs = summary.messageArgs()
                 )
             }.onFailure { error ->
                 _uiState.value = SyncUiState(
                     status = SyncStatusUi.ERROR,
-                    message = error.message ?: "Stanja sinhronizacije ni bilo mogoče preveriti."
+                    messageResId = R.string.sync_error_status_check_failed
                 )
             }
         }
@@ -49,14 +54,14 @@ class SyncViewModel(
         if (userId == null) {
             _uiState.value = SyncUiState(
                 status = SyncStatusUi.ERROR,
-                message = "Uporabnik ni prijavljen."
+                messageResId = R.string.sync_error_not_logged_in
             )
             return
         }
 
         syncUserData(
             userId = userId,
-            loadingMessage = "Sinhroniziram podatke..."
+            loadingMessageResId = R.string.sync_loading
         )
     }
 
@@ -65,28 +70,29 @@ class SyncViewModel(
 
         syncUserData(
             userId = userId,
-            loadingMessage = "Preverjam lokalne podatke za Firestore sync..."
+            loadingMessageResId = R.string.sync_checking_local
         )
     }
 
-    private fun syncUserData(userId: String, loadingMessage: String) {
+    private fun syncUserData(userId: String, @StringRes loadingMessageResId: Int) {
         viewModelScope.launch {
             _uiState.value = SyncUiState(
                 status = SyncStatusUi.SYNCING,
-                message = loadingMessage
+                messageResId = loadingMessageResId
             )
 
             syncRepository.pushAllLocalData(userId)
                 .onSuccess { report ->
                     _uiState.value = SyncUiState(
                         status = SyncStatusUi.SUCCESS,
-                        message = report.toUserMessage()
+                        messageResId = report.messageResId(),
+                        messageArgs = report.messageArgs()
                     )
                 }
                 .onFailure { error ->
                     _uiState.value = SyncUiState(
                         status = SyncStatusUi.ERROR,
-                        message = error.message ?: "Sinhronizacija ni uspela."
+                        messageResId = R.string.sync_error_failed
                     )
                 }
         }
@@ -107,7 +113,8 @@ class SyncViewModel(
 
 data class SyncUiState(
     val status: SyncStatusUi = SyncStatusUi.IDLE,
-    val message: String = "Lokalna baza je pripravljena za Firestore sync."
+    @StringRes val messageResId: Int = R.string.sync_ready,
+    val messageArgs: List<Any> = emptyList()
 )
 
 enum class SyncStatusUi {
@@ -116,4 +123,42 @@ enum class SyncStatusUi {
     WARNING,
     SUCCESS,
     ERROR
+}
+
+@StringRes
+private fun LocalSyncSummary.messageResId(): Int {
+    return when {
+        failedTotal > 0 -> R.string.sync_local_failed_pending
+        pendingTotal > 0 -> R.string.sync_local_pending
+        else -> R.string.sync_no_local_changes
+    }
+}
+
+private fun LocalSyncSummary.messageArgs(): List<Any> {
+    return when {
+        failedTotal > 0 -> listOf(failedTotal, pendingTotal)
+        pendingTotal > 0 -> listOf(pendingTotal)
+        else -> emptyList()
+    }
+}
+
+@StringRes
+private fun SyncReport.messageResId(): Int {
+    val failedTotal = failedCategories + failedExpenses + failedBudgets + failedAiSummaries
+    val uploadedTotal = uploadedCategories + uploadedExpenses + uploadedBudgets + uploadedAiSummaries
+    return when {
+        failedTotal > 0 -> R.string.sync_report_partial
+        uploadedTotal > 0 -> R.string.sync_report_uploaded
+        else -> R.string.sync_report_checked_no_changes
+    }
+}
+
+private fun SyncReport.messageArgs(): List<Any> {
+    val failedTotal = failedCategories + failedExpenses + failedBudgets + failedAiSummaries
+    val uploadedTotal = uploadedCategories + uploadedExpenses + uploadedBudgets + uploadedAiSummaries
+    return when {
+        failedTotal > 0 -> listOf(failedCategories, failedExpenses, failedBudgets, failedAiSummaries)
+        uploadedTotal > 0 -> listOf(uploadedCategories, uploadedExpenses, uploadedBudgets, uploadedAiSummaries)
+        else -> emptyList()
+    }
 }

@@ -28,7 +28,7 @@ import si.um.feri.budzetko.data.entity.UserEntity
         BudgetCategoryEntity::class,
         AiSummaryEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(BudzetkoTypeConverters::class)
@@ -50,7 +50,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budzetko.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6
+                    )
                     .build()
                     .also { INSTANCE = it }
             }
@@ -85,6 +91,12 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE budget_categories ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE ai_summaries ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'SYNCED'")
                 db.execSQL("ALTER TABLE ai_summaries ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN receipt_image_path TEXT")
             }
         }
     }
