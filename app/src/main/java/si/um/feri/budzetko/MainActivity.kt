@@ -413,6 +413,7 @@ fun BudzetkoApp(
             expenseViewModel = expenseViewModel,
             categoryViewModel = categoryViewModel,
             expenseToEdit = expenseBeingEdited,
+            appLanguage = appLanguage,
             onClose = {
                 expenseBeingEdited = null
                 isAddExpenseDialogOpen = false

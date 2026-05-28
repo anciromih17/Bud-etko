@@ -48,6 +48,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,7 +63,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -85,6 +85,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import si.um.feri.budzetko.AppLanguage
+import si.um.feri.budzetko.AppLanguageStore
 import si.um.feri.budzetko.R
 import si.um.feri.budzetko.data.entity.CategoryEntity
 import si.um.feri.budzetko.data.entity.ExpenseEntity
@@ -121,10 +123,45 @@ fun AddExpenseScreen(
     expenseViewModel: ExpenseViewModel,
     categoryViewModel: CategoryViewModel,
     expenseToEdit: ExpenseEntity?,
+    appLanguage: AppLanguage = AppLanguage.SLOVENIAN,
     onClose: () -> Unit,
     onSaved: () -> Unit,
     onAddCategoryClick: () -> Unit,
     onRequestCameraPermission: (((Boolean) -> Unit) -> Unit) = { it(false) }
+) {
+    val currentContext = LocalContext.current
+    val localizedContext = remember(currentContext, appLanguage) {
+        AppLanguageStore.localizedContext(currentContext, appLanguage)
+    }
+    val strings = remember(localizedContext) {
+        AddExpenseStrings.from(localizedContext)
+    }
+
+    CompositionLocalProvider(LocalContext provides localizedContext) {
+        AddExpenseScreenContent(
+            expenseViewModel = expenseViewModel,
+            categoryViewModel = categoryViewModel,
+            expenseToEdit = expenseToEdit,
+            strings = strings,
+            onClose = onClose,
+            onSaved = onSaved,
+            onAddCategoryClick = onAddCategoryClick,
+            onRequestCameraPermission = onRequestCameraPermission
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddExpenseScreenContent(
+    expenseViewModel: ExpenseViewModel,
+    categoryViewModel: CategoryViewModel,
+    expenseToEdit: ExpenseEntity?,
+    strings: AddExpenseStrings,
+    onClose: () -> Unit,
+    onSaved: () -> Unit,
+    onAddCategoryClick: () -> Unit,
+    onRequestCameraPermission: (((Boolean) -> Unit) -> Unit)
 ) {
     val categoryState by categoryViewModel.uiState.collectAsState()
     val categories = categoryState.categories
@@ -141,23 +178,13 @@ fun AddExpenseScreen(
     var amountCandidates by remember { mutableStateOf<List<ReceiptAmountCandidate>>(emptyList()) }
     var receiptImageSourceFile by remember { mutableStateOf<File?>(null) }
     val context = LocalContext.current
-    val ocrScanningMessage = stringResource(R.string.ocr_scanning)
-    val ocrNoAmountsMessage = stringResource(R.string.ocr_no_amounts)
-    val ocrFailedMessage = stringResource(R.string.ocr_failed)
-    val ocrAmountAppliedMessage = stringResource(R.string.ocr_amount_applied)
-    val ocrCameraPermissionMessage = stringResource(R.string.ocr_camera_permission_message)
-    val receiptDescription = stringResource(R.string.ocr_default_description)
-    val invalidAmountMessage = stringResource(R.string.expense_error_invalid_amount)
-    val missingDescriptionMessage = stringResource(R.string.expense_error_missing_description)
-    val missingCategoryMessage = stringResource(R.string.expense_error_missing_category)
-    val invalidDateMessage = stringResource(R.string.expense_error_invalid_date)
 
     fun processReceiptImage(file: File) {
-        errorMessage = ocrScanningMessage
+        errorMessage = strings.ocrScanning
         val image = runCatching {
             InputImage.fromFilePath(context, android.net.Uri.fromFile(file))
         }.getOrElse {
-            errorMessage = ocrFailedMessage
+            errorMessage = strings.ocrFailed
             return
         }
         val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -169,14 +196,14 @@ fun AddExpenseScreen(
                 receiptImageSourceFile = file
 
                 if (candidates.isEmpty()) {
-                    errorMessage = ocrNoAmountsMessage
+                    errorMessage = strings.ocrNoAmounts
                 } else {
                     amountCandidates = candidates
                     errorMessage = null
                 }
             }
             .addOnFailureListener {
-                errorMessage = ocrFailedMessage
+                errorMessage = strings.ocrFailed
             }
             .addOnCompleteListener {
                 textRecognizer.close()
@@ -239,9 +266,10 @@ fun AddExpenseScreen(
                     contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 22.dp),
                     verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
-                    item { AddExpenseHeader(onClose = onClose) }
+                    item { AddExpenseHeader(strings = strings, onClose = onClose) }
                     item {
                         AddExpenseFormCard(
+                            strings = strings,
                             isEditing = expenseToEdit != null,
                             amount = amount,
                             description = description,
@@ -284,7 +312,7 @@ fun AddExpenseScreen(
                                         if (isGranted) {
                                             isCameraOpen = true
                                         } else {
-                                            errorMessage = ocrCameraPermissionMessage
+                                            errorMessage = strings.ocrCameraPermissionMessage
                                         }
                                     }
                                 }
@@ -296,16 +324,16 @@ fun AddExpenseScreen(
 
                                 when {
                                     parsedAmount == null || parsedAmount <= 0.0 ->
-                                        errorMessage = invalidAmountMessage
+                                        errorMessage = strings.invalidAmount
 
                                     description.isBlank() ->
-                                        errorMessage = missingDescriptionMessage
+                                        errorMessage = strings.missingDescription
 
                                     categoryId == null ->
-                                        errorMessage = missingCategoryMessage
+                                        errorMessage = strings.missingCategory
 
                                     parsedDate == null ->
-                                        errorMessage = invalidDateMessage
+                                        errorMessage = strings.invalidDate
 
                                     else -> {
                                         val amountInEur = MoneyFormatter.toBaseEur(parsedAmount, selectedCurrency)
@@ -373,12 +401,12 @@ fun AddExpenseScreen(
                         isDatePickerOpen = false
                     }
                 ) {
-                    Text(stringResource(R.string.choose))
+                    Text(strings.choose)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { isDatePickerOpen = false }) {
-                    Text(stringResource(R.string.cancel))
+                    Text(strings.cancel)
                 }
             }
         ) {
@@ -388,6 +416,7 @@ fun AddExpenseScreen(
 
     if (isCameraOpen) {
         ReceiptCameraDialog(
+            strings = strings,
             onDismiss = { isCameraOpen = false },
             onImageCaptured = { file ->
                 isCameraOpen = false
@@ -395,20 +424,21 @@ fun AddExpenseScreen(
             },
             onCaptureError = {
                 isCameraOpen = false
-                errorMessage = ocrFailedMessage
+                errorMessage = strings.ocrFailed
             }
         )
     }
 
     if (amountCandidates.isNotEmpty()) {
         ReceiptAmountPickerDialog(
+            strings = strings,
             candidates = amountCandidates,
             onAmountSelected = { candidate ->
                 amount = candidate.displayAmount
                 if (description.isBlank()) {
-                    description = receiptDescription
+                    description = strings.receiptDescription
                 }
-                errorMessage = ocrAmountAppliedMessage
+                errorMessage = strings.ocrAmountApplied
                 amountCandidates = emptyList()
             },
             onDismiss = { amountCandidates = emptyList() }
@@ -418,6 +448,7 @@ fun AddExpenseScreen(
 
 @Composable
 private fun ReceiptCameraDialog(
+    strings: AddExpenseStrings,
     onDismiss: () -> Unit,
     onImageCaptured: (File) -> Unit,
     onCaptureError: () -> Unit
@@ -452,13 +483,13 @@ private fun ReceiptCameraDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.ocr_capture_title),
+                            text = strings.ocrCaptureTitle,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = Ink
                         )
                         Text(
-                            text = stringResource(R.string.ocr_capture_hint),
+                            text = strings.ocrCaptureHint,
                             style = MaterialTheme.typography.bodySmall,
                             color = MutedInk
                         )
@@ -470,7 +501,7 @@ private fun ReceiptCameraDialog(
                             .clip(CircleShape)
                             .background(SoftAccent)
                     ) {
-                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close), tint = Ink)
+                        Icon(Icons.Outlined.Close, contentDescription = strings.close, tint = Ink)
                     }
                 }
 
@@ -538,7 +569,7 @@ private fun ReceiptCameraDialog(
                 ) {
                     Icon(Icons.Outlined.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = stringResource(R.string.ocr_take_photo), fontWeight = FontWeight.ExtraBold)
+                    Text(text = strings.ocrTakePhoto, fontWeight = FontWeight.ExtraBold)
                 }
             }
         }
@@ -547,6 +578,7 @@ private fun ReceiptCameraDialog(
 
 @Composable
 private fun ReceiptAmountPickerDialog(
+    strings: AddExpenseStrings,
     candidates: List<ReceiptAmountCandidate>,
     onAmountSelected: (ReceiptAmountCandidate) -> Unit,
     onDismiss: () -> Unit
@@ -556,7 +588,7 @@ private fun ReceiptAmountPickerDialog(
         containerColor = CardSurface,
         title = {
             Text(
-                text = stringResource(R.string.ocr_amounts_title),
+                text = strings.ocrAmountsTitle,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
             )
@@ -564,7 +596,7 @@ private fun ReceiptAmountPickerDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = stringResource(R.string.ocr_amounts_message),
+                    text = strings.ocrAmountsMessage,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MutedInk
                 )
@@ -590,27 +622,27 @@ private fun ReceiptAmountPickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.cancel))
+                Text(text = strings.cancel)
             }
         }
     )
 }
 
 @Composable
-private fun AddExpenseHeader(onClose: () -> Unit) {
+private fun AddExpenseHeader(strings: AddExpenseStrings, onClose: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.add_expense_header_title),
+                text = strings.addExpenseHeaderTitle,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 color = Ink
             )
             Text(
-                text = stringResource(R.string.add_expense_header_subtitle),
+                text = strings.addExpenseHeaderSubtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MutedInk
@@ -623,13 +655,14 @@ private fun AddExpenseHeader(onClose: () -> Unit) {
                 .clip(CircleShape)
                 .background(CardSurface)
         ) {
-            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.close), tint = Ink)
+            Icon(Icons.Outlined.Close, contentDescription = strings.close, tint = Ink)
         }
     }
 }
 
 @Composable
 private fun AddExpenseFormCard(
+    strings: AddExpenseStrings,
     isEditing: Boolean,
     amount: String,
     description: String,
@@ -666,9 +699,9 @@ private fun AddExpenseFormCard(
         ) {
             Text(
                 text = if (isEditing) {
-                    stringResource(R.string.edit_expense_title)
+                    strings.editExpenseTitle
                 } else {
-                    stringResource(R.string.add_expense_title)
+                    strings.addExpenseTitle
                 },
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
@@ -678,7 +711,7 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = amount,
                 onValueChange = onAmountChange,
-                label = { Text(stringResource(R.string.amount_label, currentCurrencySymbol())) },
+                label = { Text(strings.amountLabel(currentCurrencySymbol())) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -686,14 +719,14 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
-                label = { Text(stringResource(R.string.expense_description_label)) },
-                placeholder = { Text(stringResource(R.string.expense_description_placeholder)) },
+                label = { Text(strings.expenseDescriptionLabel) },
+                placeholder = { Text(strings.expenseDescriptionPlaceholder) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Text(
-                text = stringResource(R.string.category_label),
+                text = strings.categoryLabel,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = Ink
@@ -714,7 +747,7 @@ private fun AddExpenseFormCard(
                     )
                 }
                 item {
-                    AddCategoryTile(onClick = onAddCategoryClick)
+                    AddCategoryTile(strings = strings, onClick = onAddCategoryClick)
                 }
             }
 
@@ -722,7 +755,7 @@ private fun AddExpenseFormCard(
                 OutlinedTextField(
                     value = dateInput,
                     onValueChange = onDateChange,
-                    label = { Text(stringResource(R.string.date_label)) },
+                    label = { Text(strings.dateLabel) },
                     leadingIcon = {
                         Icon(Icons.Outlined.CalendarMonth, contentDescription = null)
                     },
@@ -745,8 +778,8 @@ private fun AddExpenseFormCard(
             OutlinedTextField(
                 value = note,
                 onValueChange = onNoteChange,
-                label = { Text(stringResource(R.string.notes_optional_label)) },
-                placeholder = { Text(stringResource(R.string.notes_optional_placeholder)) },
+                label = { Text(strings.notesOptionalLabel) },
+                placeholder = { Text(strings.notesOptionalPlaceholder) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -767,9 +800,9 @@ private fun AddExpenseFormCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = if (isEditing) {
-                        stringResource(R.string.save_changes)
+                        strings.saveChanges
                     } else {
-                        stringResource(R.string.add_expense_title)
+                        strings.addExpenseTitle
                     },
                     fontWeight = FontWeight.Bold
                 )
@@ -793,7 +826,7 @@ private fun AddExpenseFormCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = stringResource(R.string.scan_receipt),
+                    text = strings.scanReceipt,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -850,7 +883,7 @@ private fun CategoryTile(
 }
 
 @Composable
-private fun AddCategoryTile(onClick: () -> Unit) {
+private fun AddCategoryTile(strings: AddExpenseStrings, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -872,8 +905,82 @@ private fun AddCategoryTile(onClick: () -> Unit) {
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)
             }
-            Text(text = stringResource(R.string.add_category_short), style = MaterialTheme.typography.bodySmall, color = Ink)
+            Text(text = strings.addCategoryShort, style = MaterialTheme.typography.bodySmall, color = Ink)
         }
+    }
+}
+
+private data class AddExpenseStrings(
+    val ocrScanning: String,
+    val ocrNoAmounts: String,
+    val ocrFailed: String,
+    val ocrAmountApplied: String,
+    val ocrCameraPermissionMessage: String,
+    val receiptDescription: String,
+    val invalidAmount: String,
+    val missingDescription: String,
+    val missingCategory: String,
+    val invalidDate: String,
+    val choose: String,
+    val cancel: String,
+    val close: String,
+    val ocrCaptureTitle: String,
+    val ocrCaptureHint: String,
+    val ocrTakePhoto: String,
+    val ocrAmountsTitle: String,
+    val ocrAmountsMessage: String,
+    val addExpenseHeaderTitle: String,
+    val addExpenseHeaderSubtitle: String,
+    val addExpenseTitle: String,
+    val editExpenseTitle: String,
+    val amountLabelTemplate: String,
+    val expenseDescriptionLabel: String,
+    val expenseDescriptionPlaceholder: String,
+    val categoryLabel: String,
+    val dateLabel: String,
+    val notesOptionalLabel: String,
+    val notesOptionalPlaceholder: String,
+    val saveChanges: String,
+    val scanReceipt: String,
+    val addCategoryShort: String
+) {
+    fun amountLabel(symbol: String): String = amountLabelTemplate.replace("%1\$s", symbol)
+
+    companion object {
+        fun from(context: Context): AddExpenseStrings = AddExpenseStrings(
+            ocrScanning = context.getString(R.string.ocr_scanning),
+            ocrNoAmounts = context.getString(R.string.ocr_no_amounts),
+            ocrFailed = context.getString(R.string.ocr_failed),
+            ocrAmountApplied = context.getString(R.string.ocr_amount_applied),
+            ocrCameraPermissionMessage = context.getString(R.string.ocr_camera_permission_message),
+            receiptDescription = context.getString(R.string.ocr_default_description),
+            invalidAmount = context.getString(R.string.expense_error_invalid_amount),
+            missingDescription = context.getString(R.string.expense_error_missing_description),
+            missingCategory = context.getString(R.string.expense_error_missing_category),
+            invalidDate = context.getString(R.string.expense_error_invalid_date),
+            choose = context.getString(R.string.choose),
+            cancel = context.getString(R.string.cancel),
+            close = context.getString(R.string.close),
+            ocrCaptureTitle = context.getString(R.string.ocr_capture_title),
+            ocrCaptureHint = context.getString(R.string.ocr_capture_hint),
+            ocrTakePhoto = context.getString(R.string.ocr_take_photo),
+            ocrAmountsTitle = context.getString(R.string.ocr_amounts_title),
+            ocrAmountsMessage = context.getString(R.string.ocr_amounts_message),
+            addExpenseHeaderTitle = context.getString(R.string.add_expense_header_title),
+            addExpenseHeaderSubtitle = context.getString(R.string.add_expense_header_subtitle),
+            addExpenseTitle = context.getString(R.string.add_expense_title),
+            editExpenseTitle = context.getString(R.string.edit_expense_title),
+            amountLabelTemplate = context.resources.getText(R.string.amount_label).toString(),
+            expenseDescriptionLabel = context.getString(R.string.expense_description_label),
+            expenseDescriptionPlaceholder = context.getString(R.string.expense_description_placeholder),
+            categoryLabel = context.getString(R.string.category_label),
+            dateLabel = context.getString(R.string.date_label),
+            notesOptionalLabel = context.getString(R.string.notes_optional_label),
+            notesOptionalPlaceholder = context.getString(R.string.notes_optional_placeholder),
+            saveChanges = context.getString(R.string.save_changes),
+            scanReceipt = context.getString(R.string.scan_receipt),
+            addCategoryShort = context.getString(R.string.add_category_short)
+        )
     }
 }
 

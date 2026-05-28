@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBackIosNew
 import androidx.compose.material.icons.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
@@ -42,6 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +79,14 @@ private val SoftAccent: Color
     @Composable get() = budzetkoSoftAccent()
 private val WarningAccent = Color(0xFFFF7D8A)
 
+private enum class BudgetHistorySortMode {
+    NONE,
+    ASCENDING,
+    DESCENDING;
+
+    fun next(): BudgetHistorySortMode = entries[(ordinal + 1) % entries.size]
+}
+
 @Composable
 fun BudgetHistoryScreen(
     viewModel: BudgetHistoryViewModel,
@@ -88,6 +100,18 @@ fun BudgetHistoryScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var sortMode by remember { mutableStateOf(BudgetHistorySortMode.NONE) }
+    val visibleItems = remember(uiState.items, sortMode) {
+        when (sortMode) {
+            BudgetHistorySortMode.NONE -> uiState.items
+            BudgetHistorySortMode.ASCENDING -> uiState.items.sortedWith(
+                compareBy<BudgetHistoryItem> { it.year }.thenBy { it.month }
+            )
+            BudgetHistorySortMode.DESCENDING -> uiState.items.sortedWith(
+                compareByDescending<BudgetHistoryItem> { it.year }.thenByDescending { it.month }
+            )
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -116,14 +140,16 @@ fun BudgetHistoryScreen(
             item {
                 BudgetHistorySearch(
                     query = uiState.searchQuery,
-                    onQueryChange = viewModel::onSearchChange
+                    sortMode = sortMode,
+                    onQueryChange = viewModel::onSearchChange,
+                    onSortClick = { sortMode = sortMode.next() }
                 )
             }
 
-            if (uiState.items.isEmpty()) {
+            if (visibleItems.isEmpty()) {
                 item { EmptyHistoryCard() }
             } else {
-                uiState.items.groupBy { it.year }.forEach { (year, items) ->
+                visibleItems.groupBy { it.year }.forEach { (year, items) ->
                     item {
                         Text(
                             text = year.toString(),
@@ -185,25 +211,52 @@ private fun BudgetHistoryHeader(onBackClick: () -> Unit) {
 @Composable
 private fun BudgetHistorySearch(
     query: String,
-    onQueryChange: (String) -> Unit
+    sortMode: BudgetHistorySortMode,
+    onQueryChange: (String) -> Unit,
+    onSortClick: () -> Unit
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(32.dp), tint = Ink)
-        Spacer(modifier = Modifier.width(10.dp))
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            placeholder = { Text(stringResource(R.string.budget_history_search_placeholder)) },
-            singleLine = true,
-            shape = RoundedCornerShape(22.dp),
-            modifier = Modifier.weight(1f)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        IconButton(
-            onClick = {},
-            modifier = Modifier.size(42.dp)
-        ) {
-            Icon(Icons.Outlined.FilterList, contentDescription = stringResource(R.string.filters), modifier = Modifier.size(28.dp), tint = Ink)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(32.dp), tint = Ink)
+            Spacer(modifier = Modifier.width(10.dp))
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text(stringResource(R.string.budget_history_search_placeholder)) },
+                singleLine = true,
+                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            IconButton(
+                onClick = onSortClick,
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(
+                    imageVector = if (sortMode == BudgetHistorySortMode.NONE) {
+                        Icons.Outlined.FilterList
+                    } else {
+                        Icons.Outlined.SwapVert
+                    },
+                    contentDescription = stringResource(R.string.sort_by, stringResource(sortMode.labelRes())),
+                    modifier = Modifier.size(28.dp),
+                    tint = if (sortMode == BudgetHistorySortMode.NONE) Ink else PrimaryAccent
+                )
+            }
+        }
+        if (sortMode != BudgetHistorySortMode.NONE) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = PrimaryAccent.copy(alpha = 0.12f)
+            ) {
+                Text(
+                    text = stringResource(R.string.sort_by, stringResource(sortMode.labelRes())),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryAccent
+                )
+            }
         }
     }
 }
@@ -421,6 +474,14 @@ private fun EmptyHistoryCard() {
 }
 
 private fun Double.formatMoney(): String = "%.2f".format(this)
+
+private fun BudgetHistorySortMode.labelRes(): Int {
+    return when (this) {
+        BudgetHistorySortMode.NONE -> R.string.sort_none
+        BudgetHistorySortMode.ASCENDING -> R.string.sort_ascending
+        BudgetHistorySortMode.DESCENDING -> R.string.sort_descending
+    }
+}
 
 @Composable
 private fun monthName(month: Int): String {
