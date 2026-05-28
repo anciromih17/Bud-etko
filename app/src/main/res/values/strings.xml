@@ -187,6 +187,9 @@
     <string name="sort_oldest">Najstarejše</string>
     <string name="sort_amount_high">Najvišji znesek</string>
     <string name="sort_amount_low">Najnižji znesek</string>
+    <string name="sort_none">Brez sortiranja</string>
+    <string name="sort_ascending">Naraščajoče</string>
+    <string name="sort_descending">Padajoče</string>
     <string name="analytics_title">Analitika</string>
     <string name="analytics_subtitle">Pregled porabe po kategorijah</string>
     <string name="analytics_selected_month">Analitika za izbrani mesec</string>
@@ -222,4 +225,18 @@
     <string name="budget_history_no_ai_summary">Za ta mesec AI povzetek še ni shranjen.</string>
     <string name="budget_history_show_expenses">Prikaži stroške</string>
     <string name="budget_history_empty">Zgodovina je trenutno prazna. Ko shraniš mesečni proračun, se bo prikazal tukaj.</string>
+    <string name="auth_tagline">Osebne finance na miren način</string>
+    <string name="auth_login_title">Prijavi se</string>
+    <string name="auth_login_subtitle">Dobrodošla nazaj. Nadaljuj s spremljanjem svojih stroškov.</string>
+    <string name="auth_register_title">Registriraj se</string>
+    <string name="auth_register_subtitle">Ustvari račun in začni urejati svoj mesečni proračun.</string>
+    <string name="auth_reset_title">Ponastavi geslo</string>
+    <string name="auth_reset_subtitle">Vnesi e-pošto in poslali ti bomo povezavo za ponastavitev.</string>
+    <string name="auth_login_action">Prijavi</string>
+    <string name="auth_register_action">Registriraj</string>
+    <string name="auth_reset_action">Pošlji</string>
+    <string name="auth_wait">Počakaj...</string>
+    <string name="auth_forgot_password">Pozabljeno geslo?</string>
+    <string name="auth_go_register">Nimaš računa? Registriraj se</string>
+    <string name="auth_go_login">Že imaš račun? Vpiši se</string>
 </resources>

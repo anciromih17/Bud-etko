@@ -187,6 +187,9 @@
     <string name="sort_oldest">Oldest</string>
     <string name="sort_amount_high">Highest amount</string>
     <string name="sort_amount_low">Lowest amount</string>
+    <string name="sort_none">No sorting</string>
+    <string name="sort_ascending">Ascending</string>
+    <string name="sort_descending">Descending</string>
     <string name="analytics_title">Analytics</string>
     <string name="analytics_subtitle">Spending by category overview</string>
     <string name="analytics_selected_month">Analytics for the selected month</string>
@@ -222,4 +225,18 @@
     <string name="budget_history_no_ai_summary">No AI summary saved for this month yet.</string>
     <string name="budget_history_show_expenses">Show expenses</string>
     <string name="budget_history_empty">History is empty right now. Saved monthly budgets will appear here.</string>
+    <string name="auth_tagline">Personal finances, calmly organized</string>
+    <string name="auth_login_title">Sign in</string>
+    <string name="auth_login_subtitle">Welcome back. Continue tracking your expenses.</string>
+    <string name="auth_register_title">Create account</string>
+    <string name="auth_register_subtitle">Create an account and start organizing your monthly budget.</string>
+    <string name="auth_reset_title">Reset password</string>
+    <string name="auth_reset_subtitle">Enter your email and we will send you a reset link.</string>
+    <string name="auth_login_action">Sign in</string>
+    <string name="auth_register_action">Register</string>
+    <string name="auth_reset_action">Send</string>
+    <string name="auth_wait">Please wait...</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_go_register">No account? Register</string>
+    <string name="auth_go_login">Already have an account? Sign in</string>
 </resources>

@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -667,9 +668,18 @@ private fun CategoryBudgetRolePicker(
         ) {
             CategoryBudgetRole.entries.forEach { role ->
                 FilterChip(
+                    modifier = Modifier.weight(1f),
                     selected = selectedBudgetRole == role,
                     onClick = { onBudgetRoleSelected(role) },
-                    label = { Text(text = stringResource(role.labelRes())) },
+                    label = {
+                        Text(
+                            text = stringResource(role.labelRes()),
+                            modifier = Modifier.fillMaxWidth(),
+                            maxLines = 1,
+                            softWrap = false,
+                            textAlign = TextAlign.Center
+                        )
+                    },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = LimeAccent,
                         selectedLabelColor = Color(0xFF050505)
